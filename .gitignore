@@ -46,3 +46,6 @@ app.*.map.json
 
 # CleanCity — clé Rodium AI (ne jamais committer)
 dart_defines.json
+
+# Journaux de crash de la JVM (Gradle)
+hs_err_pid*.log
