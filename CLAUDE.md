@@ -23,7 +23,7 @@ Le projet sera présenté en direct : **la priorité absolue est une application
 - **Flutter** (dernière version stable) et **Dart**, application mobile Android en priorité (iOS si possible, sans bloquer le reste)
 - **Firebase Authentication** : inscription et connexion par email / mot de passe
 - **Cloud Firestore** : base de données
-- **Firebase Storage** : stockage des photos
+- **Pas de Firebase Storage** : il exige le forfait Blaze (carte bancaire), que nous n'avons pas. Les photos sont compressées et stockées en base64 directement dans Firestore (voir section 5).
 - **Rodium AI** (sponsor du hackathon) : analyse des photos. Rodium AI est une passerelle d'API compatible OpenAI (`https://api.rodiumai.io/v1`) qui donne accès aux modèles d'OpenAI, Anthropic, Google, etc. avec une seule clé. Documentation : https://www.rodiumai.io/docs
 - **Packages complémentaires :** `http` (appels à Rodium AI), `image_picker` (photo), `geolocator` (GPS), `url_launcher` (ouvrir Google Maps), `provider` (gestion d'état), `intl` (formatage des dates)
 
@@ -46,7 +46,7 @@ Le fichier `lib/firebase_options.dart` est généré par `flutterfire configure`
    - analyse automatique de la photo par l'IA, qui pré-remplit catégorie, urgence et description ;
    - l'utilisateur peut corriger les champs avant de valider ;
    - récupération de la position GPS ; en cas de refus de permission ou d'erreur, saisie manuelle de la commune (liste déroulante) et d'un repère ;
-   - envoi : upload de la photo dans Storage, puis création du document Firestore ;
+   - envoi : compression de la photo, encodage en base64, puis création du document Firestore contenant la photo ;
    - indicateur de chargement pendant l'analyse et l'envoi.
 5. **Détail d'un signalement** : photo, catégorie, urgence, description, date, auteur, statut, bouton « Voir sur la carte » qui ouvre Google Maps (`https://www.google.com/maps?q=LAT,LNG`). Si l'utilisateur est admin, possibilité de changer le statut.
 6. **Mes signalements** : liste des signalements de l'utilisateur connecté.
@@ -76,7 +76,7 @@ signalements/{id}
   userId: string
   userNom: string
   description: string
-  photoUrl: string
+  photoBase64: string    // photo JPEG compressée, encodée en base64
   categorie: "ordures" | "caniveau" | "eau_stagnante" | "autre"
   urgence: "faible" | "moyenne" | "elevee"
   statut: "en_attente" | "en_cours" | "resolu"
@@ -89,12 +89,20 @@ signalements/{id}
   updatedAt: timestamp
 ```
 
-Les photos sont stockées dans Storage sous `signalements/{uid}/{timestamp}.jpg`. Compresse les images avant l'envoi (`imageQuality` et `maxWidth` d'`image_picker`) pour limiter le poids.
+### Stockage des photos dans Firestore
+Firebase Storage n'est pas utilisé (forfait Blaze requis). La photo est stockée dans le champ `photoBase64` du document :
+- à la sélection, `image_picker` compresse l'image avec `maxWidth: 800`, `maxHeight: 800` et `imageQuality: 60` ;
+- les octets sont encodés avec `base64Encode` (`dart:convert`) ;
+- **contrôle obligatoire :** si la chaîne base64 dépasse 700 000 caractères, recompresser plus fort (par exemple `maxWidth: 600`, `imageQuality: 45`) ou afficher un message d'erreur. La limite d'un document Firestore est de 1 Mo ;
+- l'affichage utilise `Image.memory(base64Decode(...))` ; décoder une seule fois par widget (pas à chaque build) et prévoir un `errorBuilder` ;
+- la même chaîne base64 est réutilisée pour l'analyse IA (section 6), sans nouvelle compression.
+
+Limite connue, à assumer devant le jury : cette solution convient à un prototype avec quelques dizaines de signalements, pas à une application à grande échelle, où l'on passerait à un service de stockage de fichiers.
 
 ## 6. Analyse IA de la photo
 
 L'analyse passe par **Rodium AI**, sponsor du hackathon. Service dédié `lib/services/ia_service.dart` qui :
-1. encode la photo compressée en base64 ;
+1. reçoit la photo déjà compressée et encodée en base64 (la même que celle enregistrée dans Firestore) ;
 2. appelle `POST https://api.rodiumai.io/v1/chat/completions` avec le package `http`, l'en-tête `Authorization: Bearer <clé>` et un message utilisateur au format OpenAI multimodal (une partie `text` avec la consigne, une partie `image_url` avec `data:image/jpeg;base64,...`) ;
 3. utilise un modèle **qui accepte les images** (vision), choisi dans la liste `GET /v1/models` ou la page Models de Rodium (par exemple un modèle GPT-4o ou Gemini). Le nom du modèle est une constante dans `utils/constants.dart` pour pouvoir en changer facilement ;
 4. demande une réponse **uniquement en JSON** au format :
@@ -123,7 +131,7 @@ lib/
   firebase_options.dart
   models/        signalement.dart, app_user.dart  (fromFirestore / toMap)
   services/      auth_service.dart, signalement_service.dart,
-                 storage_service.dart, location_service.dart, ia_service.dart
+                 image_service.dart, location_service.dart, ia_service.dart
   providers/     auth_provider.dart
   screens/       auth/, home/, signalement/, profil/
   widgets/       composants réutilisables (carte de signalement, badges…)
@@ -140,12 +148,12 @@ Principes :
 
 ## 8. Règles de sécurité
 
-Fournir `firestore.rules` et `storage.rules` à la racine du projet :
+Fournir `firestore.rules` à la racine du projet :
 - seuls les utilisateurs connectés peuvent lire les signalements ;
 - un utilisateur ne peut créer un signalement qu'avec son propre `userId` et le statut `en_attente` ;
 - seul un admin (champ `role` dans `users/{uid}`) peut modifier le statut ;
 - un utilisateur ne peut modifier que son propre document `users/{uid}` et ne peut pas changer son `role` ;
-- Storage : écriture uniquement dans `signalements/{son uid}/`, images de moins de 5 Mo.
+- le champ `photoBase64` est obligatoire à la création et doit faire moins de 900 000 caractères.
 
 ## 9. Permissions natives
 
@@ -181,5 +189,5 @@ Règles :
 - Avant chaque tâche importante, **présente un plan court** et attends ma validation.
 - Travaille étape par étape ; après chaque étape, vérifie que le code compile (`flutter analyze`) et explique brièvement ce que tu as fait.
 - Privilégie les solutions simples et éprouvées. Si une fonctionnalité risque de retarder le projet, propose une alternative plus simple.
-- Quand une action manuelle est nécessaire dans la console Firebase (activer l'authentification email, créer Firestore, activer Storage, créer la clé API sur le tableau de bord Rodium AI, déployer les règles, passer un utilisateur en admin), **donne-moi les étapes précises** au lieu de supposer qu'elle est faite.
+- Quand une action manuelle est nécessaire dans la console Firebase (activer l'authentification email, créer Firestore, créer la clé API sur le tableau de bord Rodium AI, déployer les règles, passer un utilisateur en admin), **donne-moi les étapes précises** au lieu de supposer qu'elle est faite.
 - Explique les choix importants de façon pédagogique : nous devons pouvoir défendre le code devant le jury.
