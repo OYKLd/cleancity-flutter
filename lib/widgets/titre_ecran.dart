@@ -6,11 +6,15 @@ class TitreEcran extends StatelessWidget {
   final String? sousTitre;
   final bool centre;
 
+  /// Smaller title, for dialogs and bottom sheets.
+  final bool compact;
+
   const TitreEcran({
     super.key,
     required this.titre,
     this.sousTitre,
     this.centre = false,
+    this.compact = false,
   });
 
   @override
@@ -26,7 +30,9 @@ class TitreEcran extends StatelessWidget {
         Text(
           titre,
           textAlign: alignementTexte,
-          style: theme.textTheme.headlineMedium,
+          style: compact
+              ? theme.textTheme.headlineSmall
+              : theme.textTheme.headlineMedium,
         ),
         if (sousTitre != null) ...[
           const SizedBox(height: 8),
