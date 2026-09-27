@@ -139,7 +139,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
                   ChampMotDePasse(
                     controller: _confirmationController,
-                    libelle: 'Confirmer le mot de passe',
+                    libelle: 'Confirmation',
+                    indice: 'Retapez votre mot de passe',
                     actif: !_enCours,
                     validator: (valeur) => Validateurs.confirmationMotDePasse(
                       valeur,
