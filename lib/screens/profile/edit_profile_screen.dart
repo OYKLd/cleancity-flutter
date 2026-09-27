@@ -1,59 +1,59 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/validators.dart';
+import '../../widgets/form_layout.dart';
 import '../../widgets/initials_avatar.dart';
 import '../../widgets/message_banner.dart';
 import '../../widgets/primary_button.dart';
-import '../../widgets/form_layout.dart';
 
-/// Modification du profil : seul le nom affiché est modifiable.
-/// L'email reste en lecture seule (le changer exigerait une reconnexion).
-class ModifierProfilScreen extends StatefulWidget {
-  final String nom;
+/// Profile editing: only the display name can be changed. The email stays
+/// read-only because changing it would require re-authentication.
+class EditProfileScreen extends StatefulWidget {
+  final String name;
   final String email;
 
-  const ModifierProfilScreen({
+  const EditProfileScreen({
     super.key,
-    required this.nom,
+    required this.name,
     required this.email,
   });
 
   @override
-  State<ModifierProfilScreen> createState() => _ModifierProfilScreenState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
+class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nomController;
+  late final TextEditingController _nameController;
 
-  var _modeValidation = AutovalidateMode.disabled;
-  bool _enCours = false;
-  String? _erreur;
+  var _autovalidateMode = AutovalidateMode.disabled;
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  bool get _modifie => _nomController.text.trim() != widget.nom.trim();
+  bool get _hasChanges => _nameController.text.trim() != widget.name.trim();
 
   @override
   void initState() {
     super.initState();
-    _nomController = TextEditingController(text: widget.nom);
+    _nameController = TextEditingController(text: widget.name);
     // The avatar initials and the save button both follow the typed value.
-    _nomController.addListener(() => setState(() {}));
+    _nameController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    _nomController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
-  Future<void> _enregistrer() async {
+  Future<void> _save() async {
     FocusScope.of(context).unfocus();
-    setState(() => _modeValidation = AutovalidateMode.onUserInteraction);
+    setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _enCours = true;
-      _erreur = null;
+      _isLoading = true;
+      _errorMessage = null;
     });
 
     // TODO(Dev 2): update users/{uid}.nom through AuthService.
@@ -67,26 +67,26 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
     );
   }
 
-  Future<void> _confirmerAbandon() async {
-    if (_enCours) return;
-    final quitter = await showDialog<bool>(
+  Future<void> _confirmDiscard() async {
+    if (_isLoading) return;
+    final discard = await showDialog<bool>(
       context: context,
-      builder: (contexte) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Abandonner les modifications ?'),
         content: const Text('Le nouveau nom ne sera pas enregistré.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(contexte, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Continuer la saisie'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(contexte, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('Abandonner'),
           ),
         ],
       ),
     );
-    if (quitter == true && mounted) Navigator.pop(context);
+    if (discard == true && mounted) Navigator.pop(context);
   }
 
   @override
@@ -94,9 +94,9 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
     final theme = Theme.of(context);
 
     return PopScope(
-      canPop: !_modifie,
-      onPopInvokedWithResult: (aQuitte, _) {
-        if (!aQuitte) _confirmerAbandon();
+      canPop: !_hasChanges,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmDiscard();
       },
       child: Scaffold(
         appBar: AppBar(title: const Text('Modifier le profil')),
@@ -104,7 +104,7 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
           children: [
             Center(
-              child: InitialsAvatar(name: _nomController.text, radius: 44),
+              child: InitialsAvatar(name: _nameController.text, radius: 44),
             ),
             const SizedBox(height: 10),
             Text(
@@ -113,26 +113,26 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 28),
-            if (_erreur != null) ...[
+            if (_errorMessage != null) ...[
               MessageBanner(
-                text: _erreur!,
-                onClose: () => setState(() => _erreur = null),
+                text: _errorMessage!,
+                onClose: () => setState(() => _errorMessage = null),
               ),
               const SizedBox(height: 16),
             ],
             Form(
               key: _formKey,
-              autovalidateMode: _modeValidation,
+              autovalidateMode: _autovalidateMode,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextFormField(
-                    controller: _nomController,
-                    enabled: !_enCours,
+                    controller: _nameController,
+                    enabled: !_isLoading,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.done,
                     validator: Validators.name,
-                    onFieldSubmitted: (_) => _enregistrer(),
+                    onFieldSubmitted: (_) => _save(),
                     decoration: const InputDecoration(
                       labelText: 'Nom complet',
                       prefixIcon: Icon(Icons.person_outline),
@@ -155,12 +155,12 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
             PrimaryButton(
               label: 'Enregistrer',
               icon: Icons.check,
-              isLoading: _enCours,
-              onPressed: _modifie ? _enregistrer : null,
+              isLoading: _isLoading,
+              onPressed: _hasChanges ? _save : null,
             ),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: _enCours ? null : () => Navigator.maybePop(context),
+              onPressed: _isLoading ? null : () => Navigator.maybePop(context),
               child: const Text('Annuler'),
             ),
           ],

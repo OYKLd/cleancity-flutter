@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../profil/profil_screen.dart';
+import '../profile/profile_screen.dart';
 import '../signalement/mes_signalements_screen.dart';
 import '../signalement/nouveau_signalement_screen.dart';
 import 'fil_signalements_screen.dart';
@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const List<Widget> _onglets = [
     FilSignalementsScreen(),
     MesSignalementsScreen(),
-    ProfilScreen(),
+    ProfileScreen(),
   ];
 
   void _ouvrirNouveauSignalement() {
