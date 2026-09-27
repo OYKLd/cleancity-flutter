@@ -3,14 +3,24 @@ import 'package:flutter/material.dart';
 /// Soft leaf silhouettes in the top-right and bottom-left corners, painted
 /// behind a page body. Purely decorative: ignores touches and semantics.
 class LeafBackdrop extends StatelessWidget {
-  const LeafBackdrop({super.key});
+  final bool topRight;
+  final bool bottomLeft;
+
+  const LeafBackdrop({super.key, this.topRight = true, this.bottomLeft = true});
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primaryContainer;
     return ExcludeSemantics(
       child: IgnorePointer(
-        child: CustomPaint(painter: _LeafPainter(color), size: Size.infinite),
+        child: CustomPaint(
+          painter: _LeafPainter(
+            color,
+            topRight: topRight,
+            bottomLeft: bottomLeft,
+          ),
+          size: Size.infinite,
+        ),
       ),
     );
   }
@@ -18,43 +28,53 @@ class LeafBackdrop extends StatelessWidget {
 
 class _LeafPainter extends CustomPainter {
   final Color color;
+  final bool topRight;
+  final bool bottomLeft;
 
-  const _LeafPainter(this.color);
+  const _LeafPainter(
+    this.color, {
+    required this.topRight,
+    required this.bottomLeft,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    _leaf(
-      canvas,
-      Offset(size.width - 26, 52),
-      length: 176,
-      width: 60,
-      angle: -0.55,
-      opacity: 0.55,
-    );
-    _leaf(
-      canvas,
-      Offset(size.width - 96, 24),
-      length: 118,
-      width: 44,
-      angle: -1.15,
-      opacity: 0.32,
-    );
-    _leaf(
-      canvas,
-      Offset(24, size.height - 26),
-      length: 160,
-      width: 56,
-      angle: 0.6,
-      opacity: 0.5,
-    );
-    _leaf(
-      canvas,
-      Offset(92, size.height - 6),
-      length: 112,
-      width: 42,
-      angle: 1.2,
-      opacity: 0.28,
-    );
+    if (topRight) {
+      _leaf(
+        canvas,
+        Offset(size.width - 26, 52),
+        length: 176,
+        width: 60,
+        angle: -0.55,
+        opacity: 0.55,
+      );
+      _leaf(
+        canvas,
+        Offset(size.width - 96, 24),
+        length: 118,
+        width: 44,
+        angle: -1.15,
+        opacity: 0.32,
+      );
+    }
+    if (bottomLeft) {
+      _leaf(
+        canvas,
+        Offset(24, size.height - 26),
+        length: 160,
+        width: 56,
+        angle: 0.6,
+        opacity: 0.5,
+      );
+      _leaf(
+        canvas,
+        Offset(92, size.height - 6),
+        length: 112,
+        width: 42,
+        angle: 1.2,
+        opacity: 0.28,
+      );
+    }
   }
 
   // A leaf is two symmetric curves between the tips, plus a lighter midrib.
@@ -90,5 +110,8 @@ class _LeafPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_LeafPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(_LeafPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.topRight != topRight ||
+      oldDelegate.bottomLeft != bottomLeft;
 }
