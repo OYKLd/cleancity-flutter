@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../utils/validators.dart';
-import '../../widgets/message_banner.dart';
-import '../../widgets/primary_button.dart';
-import '../../widgets/form_layout.dart';
-import '../../widgets/password_field.dart';
 import '../../widgets/app_logo.dart';
+import '../../widgets/form_layout.dart';
+import '../../widgets/message_banner.dart';
+import '../../widgets/password_field.dart';
+import '../../widgets/primary_button.dart';
 import '../../widgets/screen_title.dart';
 
-/// Écran d'inscription (nom, email, mot de passe).
-/// Après l'inscription, penser à fermer cet écran (Navigator.pop) :
-/// SplashScreen affichera alors l'accueil.
+/// Sign-up with name, email and password. After a successful sign-up this
+/// screen must be popped: SplashScreen then shows the home screen.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -21,39 +20,39 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nomController = TextEditingController();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _motDePasseController = TextEditingController();
-  final _confirmationController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  var _modeValidation = AutovalidateMode.disabled;
-  bool _enCours = false;
-  String? _erreur;
+  var _autovalidateMode = AutovalidateMode.disabled;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
-    _nomController.dispose();
+    _nameController.dispose();
     _emailController.dispose();
-    _motDePasseController.dispose();
-    _confirmationController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _soumettre() async {
+  Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    setState(() => _modeValidation = AutovalidateMode.onUserInteraction);
+    setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _enCours = true;
-      _erreur = null;
+      _isLoading = true;
+      _errorMessage = null;
     });
 
-    // TODO(Dev 2): call AuthProvider.inscrire() and set _erreur on failure.
+    // TODO(Dev 2): call AuthProvider.signUp() and set _errorMessage on failure.
     await Future<void>.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
-    setState(() => _enCours = false);
+    setState(() => _isLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Inscription : logique à venir.')),
     );
@@ -62,13 +61,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
+    final colors = theme.colorScheme;
 
     return Scaffold(
       // Light app bar on this onboarding screen: only the back arrow matters.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: couleurs.primary,
+        foregroundColor: colors.primary,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
       body: FormLayout(
@@ -83,23 +82,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 'caniveaux bouchés de votre quartier.',
           ),
           const SizedBox(height: 24),
-          if (_erreur != null) ...[
+          if (_errorMessage != null) ...[
             MessageBanner(
-              text: _erreur!,
-              onClose: () => setState(() => _erreur = null),
+              text: _errorMessage!,
+              onClose: () => setState(() => _errorMessage = null),
             ),
             const SizedBox(height: 16),
           ],
           Form(
             key: _formKey,
-            autovalidateMode: _modeValidation,
+            autovalidateMode: _autovalidateMode,
             child: AutofillGroup(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextFormField(
-                    controller: _nomController,
-                    enabled: !_enCours,
+                    controller: _nameController,
+                    enabled: !_isLoading,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.name],
@@ -113,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _emailController,
-                    enabled: !_enCours,
+                    enabled: !_isLoading,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.email],
@@ -127,27 +126,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 16),
                   PasswordField(
-                    controller: _motDePasseController,
-                    enabled: !_enCours,
+                    controller: _passwordController,
+                    enabled: !_isLoading,
                     helperText:
-                        'Au moins ${Validators.minPasswordLength} '
-                        'caractères',
+                        'Au moins ${Validators.minPasswordLength} caractères',
                     validator: Validators.password,
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.newPassword],
                   ),
                   const SizedBox(height: 16),
                   PasswordField(
-                    controller: _confirmationController,
+                    controller: _confirmPasswordController,
                     label: 'Confirmation',
                     hint: 'Retapez votre mot de passe',
-                    enabled: !_enCours,
-                    validator: (valeur) => Validators.confirmPassword(
-                      valeur,
-                      _motDePasseController.text,
+                    enabled: !_isLoading,
+                    validator: (value) => Validators.confirmPassword(
+                      value,
+                      _passwordController.text,
                     ),
                     autofillHints: const [AutofillHints.newPassword],
-                    onFieldSubmitted: (_) => _soumettre(),
+                    onFieldSubmitted: (_) => _submit(),
                   ),
                 ],
               ),
@@ -161,8 +159,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SizedBox(height: 20),
           PrimaryButton(
             label: 'Créer mon compte',
-            isLoading: _enCours,
-            onPressed: _soumettre,
+            isLoading: _isLoading,
+            onPressed: _submit,
           ),
           const SizedBox(height: 24),
           Wrap(
@@ -172,11 +170,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Text(
                 'Déjà un compte ?',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: couleurs.onSurfaceVariant,
+                  color: colors.onSurfaceVariant,
                 ),
               ),
               TextButton(
-                onPressed: _enCours ? null : () => Navigator.pop(context),
+                onPressed: _isLoading ? null : () => Navigator.pop(context),
                 child: const Text('Se connecter'),
               ),
             ],

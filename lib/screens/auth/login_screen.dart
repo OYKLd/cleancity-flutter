@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../utils/validators.dart';
-import '../../widgets/message_banner.dart';
-import '../../widgets/primary_button.dart';
-import '../../widgets/form_layout.dart';
-import '../../widgets/password_field.dart';
 import '../../widgets/app_logo.dart';
+import '../../widgets/form_layout.dart';
+import '../../widgets/message_banner.dart';
+import '../../widgets/password_field.dart';
+import '../../widgets/primary_button.dart';
 import '../../widgets/screen_title.dart';
-import 'mot_de_passe_oublie_sheet.dart';
+import 'forgot_password_sheet.dart';
 import 'register_screen.dart';
 
-/// Écran de connexion (email / mot de passe).
-/// Après une connexion réussie, inutile de naviguer : SplashScreen bascule
-/// tout seul vers l'accueil.
+/// Email / password sign-in. No navigation is needed after a successful
+/// sign-in: SplashScreen switches to the home screen on its own.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -24,42 +23,42 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _motDePasseController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   // Live validation only starts after the first submit attempt, so the user
   // is not shown errors while typing for the first time.
-  var _modeValidation = AutovalidateMode.disabled;
-  bool _enCours = false;
-  String? _erreur;
+  var _autovalidateMode = AutovalidateMode.disabled;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _motDePasseController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _soumettre() async {
+  Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    setState(() => _modeValidation = AutovalidateMode.onUserInteraction);
+    setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _enCours = true;
-      _erreur = null;
+      _isLoading = true;
+      _errorMessage = null;
     });
 
-    // TODO(Dev 2): call AuthProvider.connecter() and set _erreur on failure.
+    // TODO(Dev 2): call AuthProvider.signIn() and set _errorMessage on failure.
     await Future<void>.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
-    setState(() => _enCours = false);
+    setState(() => _isLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Connexion : logique à venir.')),
     );
   }
 
-  void _ouvrirInscription() {
+  void _openRegister() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const RegisterScreen()),
@@ -85,23 +84,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   'suivre les problèmes de votre quartier.',
             ),
             const SizedBox(height: 24),
-            if (_erreur != null) ...[
+            if (_errorMessage != null) ...[
               MessageBanner(
-                text: _erreur!,
-                onClose: () => setState(() => _erreur = null),
+                text: _errorMessage!,
+                onClose: () => setState(() => _errorMessage = null),
               ),
               const SizedBox(height: 16),
             ],
             Form(
               key: _formKey,
-              autovalidateMode: _modeValidation,
+              autovalidateMode: _autovalidateMode,
               child: AutofillGroup(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     TextFormField(
                       controller: _emailController,
-                      enabled: !_enCours,
+                      enabled: !_isLoading,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],
@@ -115,14 +114,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
                     PasswordField(
-                      controller: _motDePasseController,
-                      enabled: !_enCours,
-                      validator: (valeur) => Validators.notEmpty(
-                        valeur,
+                      controller: _passwordController,
+                      enabled: !_isLoading,
+                      validator: (value) => Validators.notEmpty(
+                        value,
                         'Veuillez saisir votre mot de passe.',
                       ),
                       autofillHints: const [AutofillHints.password],
-                      onFieldSubmitted: (_) => _soumettre(),
+                      onFieldSubmitted: (_) => _submit(),
                     ),
                   ],
                 ),
@@ -131,17 +130,17 @@ class _LoginScreenState extends State<LoginScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: _enCours
+                onPressed: _isLoading
                     ? null
-                    : () => MotDePasseOublieSheet.afficher(context),
+                    : () => ForgotPasswordSheet.show(context),
                 child: const Text('Mot de passe oublié ?'),
               ),
             ),
             const SizedBox(height: 8),
             PrimaryButton(
               label: 'Se connecter',
-              isLoading: _enCours,
-              onPressed: _soumettre,
+              isLoading: _isLoading,
+              onPressed: _submit,
             ),
             const SizedBox(height: 24),
             // Wrap rather than Row: stays readable with large font settings.
@@ -156,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: _enCours ? null : _ouvrirInscription,
+                  onPressed: _isLoading ? null : _openRegister,
                   child: const Text('S\'inscrire'),
                 ),
               ],
