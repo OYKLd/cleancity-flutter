@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../utils/validateurs.dart';
-import '../../widgets/bandeau_message.dart';
-import '../../widgets/bouton_principal.dart';
-import '../../widgets/cadre_formulaire.dart';
-import '../../widgets/champ_mot_de_passe.dart';
-import '../../widgets/logo_cleancity.dart';
-import '../../widgets/titre_ecran.dart';
+import '../../utils/validators.dart';
+import '../../widgets/message_banner.dart';
+import '../../widgets/primary_button.dart';
+import '../../widgets/form_layout.dart';
+import '../../widgets/password_field.dart';
+import '../../widgets/app_logo.dart';
+import '../../widgets/screen_title.dart';
 
 /// Écran d'inscription (nom, email, mot de passe).
 /// Après l'inscription, penser à fermer cet écran (Navigator.pop) :
@@ -71,22 +71,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         foregroundColor: couleurs.primary,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
-      body: CadreFormulaire(
+      body: FormLayout(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
         children: [
-          const LogoCleanCity(taille: 56, avecNom: false),
+          const AppLogo(size: 56, showName: false),
           const SizedBox(height: 24),
-          const TitreEcran(
-            titre: 'Inscription',
-            sousTitre:
+          const ScreenTitle(
+            title: 'Inscription',
+            subtitle:
                 'Créez votre compte pour signaler les dépôts sauvages et les '
                 'caniveaux bouchés de votre quartier.',
           ),
           const SizedBox(height: 24),
           if (_erreur != null) ...[
-            BandeauMessage(
-              texte: _erreur!,
-              onFermer: () => setState(() => _erreur = null),
+            MessageBanner(
+              text: _erreur!,
+              onClose: () => setState(() => _erreur = null),
             ),
             const SizedBox(height: 16),
           ],
@@ -103,7 +103,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.name],
-                    validator: Validateurs.nom,
+                    validator: Validators.name,
                     decoration: const InputDecoration(
                       labelText: 'Nom complet',
                       hintText: 'Ex. Awa Koné',
@@ -118,7 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.email],
                     autocorrect: false,
-                    validator: Validateurs.email,
+                    validator: Validators.email,
                     decoration: const InputDecoration(
                       labelText: 'Adresse email',
                       hintText: 'vous@exemple.com',
@@ -126,23 +126,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ChampMotDePasse(
+                  PasswordField(
                     controller: _motDePasseController,
-                    actif: !_enCours,
-                    aide:
-                        'Au moins ${Validateurs.longueurMinMotDePasse} '
+                    enabled: !_enCours,
+                    helperText:
+                        'Au moins ${Validators.minPasswordLength} '
                         'caractères',
-                    validator: Validateurs.motDePasse,
+                    validator: Validators.password,
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.newPassword],
                   ),
                   const SizedBox(height: 16),
-                  ChampMotDePasse(
+                  PasswordField(
                     controller: _confirmationController,
-                    libelle: 'Confirmation',
-                    indice: 'Retapez votre mot de passe',
-                    actif: !_enCours,
-                    validator: (valeur) => Validateurs.confirmationMotDePasse(
+                    label: 'Confirmation',
+                    hint: 'Retapez votre mot de passe',
+                    enabled: !_enCours,
+                    validator: (valeur) => Validators.confirmPassword(
                       valeur,
                       _motDePasseController.text,
                     ),
@@ -159,9 +159,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 20),
-          BoutonPrincipal(
-            libelle: 'Créer mon compte',
-            enCours: _enCours,
+          PrimaryButton(
+            label: 'Créer mon compte',
+            isLoading: _enCours,
             onPressed: _soumettre,
           ),
           const SizedBox(height: 24),

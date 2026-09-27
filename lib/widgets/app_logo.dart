@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 /// App logo: leaf icon on a mint disc, optionally followed by the app name.
-class LogoCleanCity extends StatelessWidget {
-  final double taille;
-  final bool avecNom;
+class AppLogo extends StatelessWidget {
+  final double size;
+  final bool showName;
 
-  const LogoCleanCity({super.key, this.taille = 72, this.avecNom = true});
+  const AppLogo({super.key, this.size = 72, this.showName = true});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
+    final colors = theme.colorScheme;
 
     return Semantics(
       label: 'CleanCity',
@@ -19,24 +19,24 @@ class LogoCleanCity extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: taille,
-            height: taille,
+            width: size,
+            height: size,
             decoration: BoxDecoration(
-              color: couleurs.primaryContainer,
+              color: colors.primaryContainer,
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.eco_rounded,
-              size: taille * 0.55,
-              color: couleurs.primary,
+              size: size * 0.55,
+              color: colors.primary,
             ),
           ),
-          if (avecNom) ...[
+          if (showName) ...[
             const SizedBox(height: 12),
             Text(
               'CleanCity',
               style: theme.textTheme.headlineSmall?.copyWith(
-                color: couleurs.primary,
+                color: colors.primary,
                 fontWeight: FontWeight.w700,
               ),
             ),

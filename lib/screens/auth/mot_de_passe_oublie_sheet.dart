@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/validateurs.dart';
-import '../../widgets/bouton_principal.dart';
-import '../../widgets/titre_ecran.dart';
+import '../../utils/validators.dart';
+import '../../widgets/primary_button.dart';
+import '../../widgets/screen_title.dart';
 
 /// Bottom sheet to request a password reset link by email.
 class MotDePasseOublieSheet extends StatefulWidget {
@@ -64,9 +64,9 @@ class _MotDePasseOublieSheetState extends State<MotDePasseOublieSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const TitreEcran(
-              titre: 'Mot de passe oublié',
-              sousTitre:
+            const ScreenTitle(
+              title: 'Mot de passe oublié',
+              subtitle:
                   'Indiquez votre adresse email : nous vous enverrons un lien '
                   'pour choisir un nouveau mot de passe.',
               compact: true,
@@ -80,7 +80,7 @@ class _MotDePasseOublieSheetState extends State<MotDePasseOublieSheet> {
               textInputAction: TextInputAction.send,
               autofillHints: const [AutofillHints.email],
               autocorrect: false,
-              validator: Validateurs.email,
+              validator: Validators.email,
               onFieldSubmitted: (_) => _envoyer(),
               decoration: const InputDecoration(
                 labelText: 'Adresse email',
@@ -89,10 +89,10 @@ class _MotDePasseOublieSheetState extends State<MotDePasseOublieSheet> {
               ),
             ),
             const SizedBox(height: 24),
-            BoutonPrincipal(
-              libelle: 'Envoyer le lien',
-              icone: Icons.send_outlined,
-              enCours: _enCours,
+            PrimaryButton(
+              label: 'Envoyer le lien',
+              icon: Icons.send_outlined,
+              isLoading: _enCours,
               onPressed: _envoyer,
             ),
             const SizedBox(height: 8),
