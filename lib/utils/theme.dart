@@ -56,26 +56,45 @@ class AppTheme {
       colorScheme: colorScheme,
       fontFamily: fontFamily,
     );
+    // Poppins runs large, so every size sits one or two points under the
+    // Material 3 defaults, body text first (16/14/12 -> 15/13/11.5).
     final textTheme = base.textTheme.copyWith(
       headlineMedium: base.textTheme.headlineMedium?.copyWith(
+        fontSize: 26,
         fontWeight: FontWeight.w600,
         color: ink,
       ),
       headlineSmall: base.textTheme.headlineSmall?.copyWith(
+        fontSize: 22,
         fontWeight: FontWeight.w600,
         color: ink,
       ),
       titleLarge: base.textTheme.titleLarge?.copyWith(
+        fontSize: 20,
         fontWeight: FontWeight.w600,
         color: ink,
       ),
       titleMedium: base.textTheme.titleMedium?.copyWith(
+        fontSize: 15,
         fontWeight: FontWeight.w600,
         color: ink,
       ),
-      bodyMedium: base.textTheme.bodyMedium?.copyWith(color: ink),
-      bodySmall: base.textTheme.bodySmall?.copyWith(color: inkMuted),
+      titleSmall: base.textTheme.titleSmall?.copyWith(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: ink,
+      ),
+      bodyLarge: base.textTheme.bodyLarge?.copyWith(fontSize: 15, color: ink),
+      bodyMedium: base.textTheme.bodyMedium?.copyWith(
+        fontSize: 13,
+        color: ink,
+      ),
+      bodySmall: base.textTheme.bodySmall?.copyWith(
+        fontSize: 11.5,
+        color: inkMuted,
+      ),
       labelLarge: base.textTheme.labelLarge?.copyWith(
+        fontSize: 13.5,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -104,7 +123,7 @@ class AppTheme {
         systemOverlayStyle: SystemUiOverlayStyle.light,
         titleTextStyle: textTheme.titleLarge?.copyWith(
           color: Colors.white,
-          fontSize: 18,
+          fontSize: 17,
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -120,7 +139,7 @@ class AppTheme {
           minimumSize: buttonSize,
           elevation: 0,
           shape: buttonShape,
-          textStyle: textTheme.labelLarge?.copyWith(fontSize: 15),
+          textStyle: textTheme.labelLarge?.copyWith(fontSize: 14),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -129,7 +148,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           minimumSize: buttonSize,
           shape: buttonShape,
-          textStyle: textTheme.labelLarge?.copyWith(fontSize: 15),
+          textStyle: textTheme.labelLarge?.copyWith(fontSize: 14),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -138,7 +157,7 @@ class AppTheme {
           minimumSize: buttonSize,
           side: const BorderSide(color: moss),
           shape: buttonShape,
-          textStyle: textTheme.labelLarge?.copyWith(fontSize: 15),
+          textStyle: textTheme.labelLarge?.copyWith(fontSize: 14),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
