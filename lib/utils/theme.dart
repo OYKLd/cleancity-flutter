@@ -6,12 +6,16 @@ import 'package:flutter/material.dart';
 class AppTheme {
   static const Color vertPrincipal = Color(0xFF2E7D32);
 
+  /// Bundled in assets/fonts so the app never depends on the network for text.
+  static const String police = 'Poppins';
+
   static ThemeData get clair {
     final colorScheme = ColorScheme.fromSeed(seedColor: vertPrincipal);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      fontFamily: police,
       scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
         backgroundColor: vertPrincipal,
