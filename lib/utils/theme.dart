@@ -1,98 +1,94 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Thème centralisé de CleanCity (Material 3, palette de verts sauge, Poppins).
-/// Tous les écrans utilisent ce thème : ne pas coder de couleurs en dur
-/// dans les écrans, passer par Theme.of(context).colorScheme.
+/// Centralised CleanCity theme (Material 3, sage green palette, Poppins).
+/// Screens must not hardcode colours: use Theme.of(context).colorScheme.
 class AppTheme {
   AppTheme._();
 
   // Sage green palette, from lightest to darkest.
-  static const Color vertPale = Color(0xFFD9E5D7);
-  static const Color vertMenthe = Color(0xFFBFCFBB);
-  static const Color vertSauge = Color(0xFF8EA58C);
-  static const Color vertMousse = Color(0xFF738A6E);
-  static const Color vertSapin = Color(0xFF344C3D);
+  static const Color sageHint = Color(0xFFD9E5D7);
+  static const Color mint = Color(0xFFBFCFBB);
+  static const Color sage = Color(0xFF8EA58C);
+  static const Color moss = Color(0xFF738A6E);
+  static const Color evergreen = Color(0xFF344C3D);
 
   // Neutral tones with a slight green tint, used for text and surfaces.
-  static const Color encre = Color(0xFF1B231D);
-  static const Color encreDouce = Color(0xFF4F5B52);
-  static const Color fond = Color(0xFFFBFCFA);
-
-  /// Kept for code written against the first version of the theme.
-  static const Color vertPrincipal = vertSapin;
+  static const Color ink = Color(0xFF1B231D);
+  static const Color inkMuted = Color(0xFF4F5B52);
+  static const Color background = Color(0xFFFBFCFA);
 
   /// Bundled in assets/fonts so the app never depends on the network for text.
-  static const String police = 'Poppins';
+  static const String fontFamily = 'Poppins';
 
-  static const double rayon = 14;
+  static const double radius = 14;
 
-  static ThemeData get clair {
+  static ThemeData get light {
     // Dark evergreen as primary: strong contrast on light surfaces (~9:1),
     // while the lighter shades are used for containers and highlights.
-    final colorScheme = ColorScheme.fromSeed(seedColor: vertSapin).copyWith(
-      primary: vertSapin,
+    final colorScheme = ColorScheme.fromSeed(seedColor: evergreen).copyWith(
+      primary: evergreen,
       onPrimary: Colors.white,
-      primaryContainer: vertMenthe,
-      onPrimaryContainer: vertSapin,
-      secondary: vertMousse,
+      primaryContainer: mint,
+      onPrimaryContainer: evergreen,
+      secondary: moss,
       onSecondary: Colors.white,
-      secondaryContainer: vertPale,
-      onSecondaryContainer: vertSapin,
-      tertiary: vertSauge,
+      secondaryContainer: sageHint,
+      onSecondaryContainer: evergreen,
+      tertiary: sage,
       onTertiary: Colors.white,
-      tertiaryContainer: vertPale,
-      onTertiaryContainer: vertSapin,
-      surface: fond,
-      onSurface: encre,
-      onSurfaceVariant: encreDouce,
+      tertiaryContainer: sageHint,
+      onTertiaryContainer: evergreen,
+      surface: background,
+      onSurface: ink,
+      onSurfaceVariant: inkMuted,
       surfaceContainerLowest: Colors.white,
       surfaceContainerLow: const Color(0xFFF3F6F1),
       surfaceContainer: const Color(0xFFEDF2EB),
       surfaceContainerHigh: const Color(0xFFE6ECE4),
-      surfaceContainerHighest: vertPale,
-      outline: vertMousse,
-      outlineVariant: vertMenthe,
+      surfaceContainerHighest: sageHint,
+      outline: moss,
+      outlineVariant: mint,
     );
 
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      fontFamily: police,
+      fontFamily: fontFamily,
     );
     final textTheme = base.textTheme.copyWith(
       headlineMedium: base.textTheme.headlineMedium?.copyWith(
         fontWeight: FontWeight.w600,
-        color: encre,
+        color: ink,
       ),
       headlineSmall: base.textTheme.headlineSmall?.copyWith(
         fontWeight: FontWeight.w600,
-        color: encre,
+        color: ink,
       ),
       titleLarge: base.textTheme.titleLarge?.copyWith(
         fontWeight: FontWeight.w600,
-        color: encre,
+        color: ink,
       ),
       titleMedium: base.textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.w600,
-        color: encre,
+        color: ink,
       ),
-      bodyMedium: base.textTheme.bodyMedium?.copyWith(color: encre),
-      bodySmall: base.textTheme.bodySmall?.copyWith(color: encreDouce),
+      bodyMedium: base.textTheme.bodyMedium?.copyWith(color: ink),
+      bodySmall: base.textTheme.bodySmall?.copyWith(color: inkMuted),
       labelLarge: base.textTheme.labelLarge?.copyWith(
         fontWeight: FontWeight.w600,
       ),
     );
 
-    final formeBouton = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(rayon),
+    final buttonShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(radius),
     );
-    const tailleBouton = Size.fromHeight(52);
+    const buttonSize = Size.fromHeight(52);
 
-    OutlineInputBorder bordureChamp(Color couleur, [double largeur = 1]) {
+    OutlineInputBorder fieldBorder(Color color, [double width = 1]) {
       return OutlineInputBorder(
-        borderRadius: BorderRadius.circular(rayon),
-        borderSide: BorderSide(color: couleur, width: largeur),
+        borderRadius: BorderRadius.circular(radius),
+        borderSide: BorderSide(color: color, width: width),
       );
     }
 
@@ -100,7 +96,7 @@ class AppTheme {
       textTheme: textTheme,
       scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
-        backgroundColor: vertSapin,
+        backgroundColor: evergreen,
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
@@ -112,42 +108,42 @@ class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: vertSapin,
+        backgroundColor: evergreen,
         foregroundColor: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: vertSapin,
+          backgroundColor: evergreen,
           foregroundColor: Colors.white,
-          minimumSize: tailleBouton,
+          minimumSize: buttonSize,
           elevation: 0,
-          shape: formeBouton,
+          shape: buttonShape,
           textStyle: textTheme.labelLarge?.copyWith(fontSize: 15),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: vertSapin,
+          backgroundColor: evergreen,
           foregroundColor: Colors.white,
-          minimumSize: tailleBouton,
-          shape: formeBouton,
+          minimumSize: buttonSize,
+          shape: buttonShape,
           textStyle: textTheme.labelLarge?.copyWith(fontSize: 15),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: vertSapin,
-          minimumSize: tailleBouton,
-          side: const BorderSide(color: vertMousse),
-          shape: formeBouton,
+          foregroundColor: evergreen,
+          minimumSize: buttonSize,
+          side: const BorderSide(color: moss),
+          shape: buttonShape,
           textStyle: textTheme.labelLarge?.copyWith(fontSize: 15),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: vertSapin,
+          foregroundColor: evergreen,
           textStyle: textTheme.labelLarge,
         ),
       ),
@@ -158,18 +154,18 @@ class AppTheme {
           horizontal: 16,
           vertical: 16,
         ),
-        border: bordureChamp(vertMenthe),
-        enabledBorder: bordureChamp(vertMenthe),
-        focusedBorder: bordureChamp(vertSapin, 1.6),
-        errorBorder: bordureChamp(colorScheme.error),
-        focusedErrorBorder: bordureChamp(colorScheme.error, 1.6),
-        disabledBorder: bordureChamp(colorScheme.surfaceContainerHigh),
-        labelStyle: TextStyle(color: encreDouce),
-        floatingLabelStyle: const TextStyle(color: vertSapin),
-        hintStyle: TextStyle(color: encreDouce.withValues(alpha: 0.7)),
+        border: fieldBorder(mint),
+        enabledBorder: fieldBorder(mint),
+        focusedBorder: fieldBorder(evergreen, 1.6),
+        errorBorder: fieldBorder(colorScheme.error),
+        focusedErrorBorder: fieldBorder(colorScheme.error, 1.6),
+        disabledBorder: fieldBorder(colorScheme.surfaceContainerHigh),
+        labelStyle: const TextStyle(color: inkMuted),
+        floatingLabelStyle: const TextStyle(color: evergreen),
+        hintStyle: TextStyle(color: inkMuted.withValues(alpha: 0.7)),
         helperStyle: textTheme.bodySmall,
-        prefixIconColor: vertMousse,
-        suffixIconColor: vertMousse,
+        prefixIconColor: moss,
+        suffixIconColor: moss,
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -177,32 +173,32 @@ class AppTheme {
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: vertPale),
+          side: const BorderSide(color: sageHint),
         ),
       ),
       listTileTheme: const ListTileThemeData(
-        iconColor: vertSapin,
+        iconColor: evergreen,
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: colorScheme.surfaceContainerLowest,
-        indicatorColor: vertMenthe,
+        indicatorColor: mint,
         surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return textTheme.labelMedium?.copyWith(
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-            color: selected ? vertSapin : encreDouce,
+            color: selected ? evergreen : inkMuted,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return IconThemeData(color: selected ? vertSapin : encreDouce);
+          return IconThemeData(color: selected ? evergreen : inkMuted);
         }),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: colorScheme.surfaceContainer,
-        selectedColor: vertMenthe,
+        selectedColor: mint,
         side: BorderSide.none,
         shape: const StadiumBorder(),
         labelStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
@@ -222,17 +218,17 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: encre,
+        backgroundColor: ink,
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       dividerTheme: const DividerThemeData(
-        color: vertPale,
+        color: sageHint,
         thickness: 1,
         space: 1,
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: vertSapin,
+        color: evergreen,
       ),
     );
   }
