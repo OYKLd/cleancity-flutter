@@ -38,9 +38,9 @@ class _EcranChargement extends StatelessWidget {
             Text(
               'CleanCity',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: couleurs.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: couleurs.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 32),
             const CircularProgressIndicator(),

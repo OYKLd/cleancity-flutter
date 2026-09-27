@@ -9,6 +9,18 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # The Flutter iOS build (Swift Package Manager) generates local copies
+  # of plugins under build/ios/SourcePackages, with their own examples and
+  # tests. We exclude them so they are not analyzed as if they were
+  # part of the project.
+  exclude:
+    - build/**
+
+formatter:
+  page_width: 80
+  trailing_commas: preserve
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
