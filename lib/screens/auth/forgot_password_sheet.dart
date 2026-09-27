@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
+import '../../services/auth_exception.dart';
 import '../../utils/validators.dart';
+import '../../widgets/message_banner.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/screen_title.dart';
 
@@ -27,6 +31,7 @@ class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
 
   var _autovalidateMode = AutovalidateMode.disabled;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -38,17 +43,32 @@ class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
     setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    // TODO(Dev 2): call AuthService to send the reset email.
-    await Future<void>.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.pop(context);
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Réinitialisation : logique à venir.')),
-    );
+    try {
+      await context.read<AuthProvider>().sendPasswordReset(
+        _emailController.text.trim(),
+      );
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context);
+      // Neutral wording: Firebase does not reveal whether the email exists.
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Si un compte existe pour cette adresse, un email de '
+            'réinitialisation vient d\'être envoyé.',
+          ),
+        ),
+      );
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _errorMessage = e.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -72,6 +92,13 @@ class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
               compact: true,
             ),
             const SizedBox(height: 24),
+            if (_errorMessage != null) ...[
+              MessageBanner(
+                text: _errorMessage!,
+                onClose: () => setState(() => _errorMessage = null),
+              ),
+              const SizedBox(height: 16),
+            ],
             TextFormField(
               controller: _emailController,
               enabled: !_isLoading,
