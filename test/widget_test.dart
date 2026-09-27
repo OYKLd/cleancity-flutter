@@ -5,8 +5,8 @@ import 'package:cleancity/screens/auth/login_screen.dart';
 import 'package:cleancity/screens/auth/register_screen.dart';
 import 'package:cleancity/utils/theme.dart';
 
-// No Firebase here: the login and register screens call no service yet,
-// so only the UI and the form validation are covered.
+// No provider here: form validation fails before any service is called,
+// so only the UI and the validation messages are covered.
 void main() {
   Widget buildApp(Widget screen) {
     return MaterialApp(theme: AppTheme.light, home: screen);
