@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
-import '../../widgets/avatar_initiales.dart';
-import '../../widgets/logo_cleancity.dart';
+import '../../widgets/initials_avatar.dart';
+import '../../widgets/app_logo.dart';
 import 'modifier_profil_screen.dart';
 
 /// Onglet « Profil » : nom, email, nombre de signalements, déconnexion.
@@ -51,7 +51,7 @@ class ProfilScreen extends StatelessWidget {
       builder: (contexte) => AlertDialog(
         title: const Row(
           children: [
-            LogoCleanCity(taille: 40, avecNom: false),
+            AppLogo(size: 40, showName: false),
             SizedBox(width: 12),
             Text('CleanCity'),
           ],
@@ -185,7 +185,7 @@ class _EnTeteProfil extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            AvatarInitiales(nom: nom, rayon: 36),
+            InitialsAvatar(name: nom, radius: 36),
             const SizedBox(width: 16),
             Expanded(
               child: Column(

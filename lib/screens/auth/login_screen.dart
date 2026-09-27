@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../utils/validateurs.dart';
-import '../../widgets/bandeau_message.dart';
-import '../../widgets/bouton_principal.dart';
-import '../../widgets/cadre_formulaire.dart';
-import '../../widgets/champ_mot_de_passe.dart';
-import '../../widgets/logo_cleancity.dart';
-import '../../widgets/titre_ecran.dart';
+import '../../utils/validators.dart';
+import '../../widgets/message_banner.dart';
+import '../../widgets/primary_button.dart';
+import '../../widgets/form_layout.dart';
+import '../../widgets/password_field.dart';
+import '../../widgets/app_logo.dart';
+import '../../widgets/screen_title.dart';
 import 'mot_de_passe_oublie_sheet.dart';
 import 'register_screen.dart';
 
@@ -73,22 +73,22 @@ class _LoginScreenState extends State<LoginScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        body: CadreFormulaire(
+        body: FormLayout(
           children: [
             const SizedBox(height: 24),
-            const LogoCleanCity(),
+            const AppLogo(),
             const SizedBox(height: 32),
-            const TitreEcran(
-              titre: 'Connexion',
-              sousTitre:
+            const ScreenTitle(
+              title: 'Connexion',
+              subtitle:
                   'Heureux de vous revoir ! Connectez-vous pour signaler et '
                   'suivre les problèmes de votre quartier.',
             ),
             const SizedBox(height: 24),
             if (_erreur != null) ...[
-              BandeauMessage(
-                texte: _erreur!,
-                onFermer: () => setState(() => _erreur = null),
+              MessageBanner(
+                text: _erreur!,
+                onClose: () => setState(() => _erreur = null),
               ),
               const SizedBox(height: 16),
             ],
@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],
                       autocorrect: false,
-                      validator: Validateurs.email,
+                      validator: Validators.email,
                       decoration: const InputDecoration(
                         labelText: 'Adresse email',
                         hintText: 'vous@exemple.com',
@@ -114,10 +114,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ChampMotDePasse(
+                    PasswordField(
                       controller: _motDePasseController,
-                      actif: !_enCours,
-                      validator: (valeur) => Validateurs.requis(
+                      enabled: !_enCours,
+                      validator: (valeur) => Validators.notEmpty(
                         valeur,
                         'Veuillez saisir votre mot de passe.',
                       ),
@@ -138,9 +138,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            BoutonPrincipal(
-              libelle: 'Se connecter',
-              enCours: _enCours,
+            PrimaryButton(
+              label: 'Se connecter',
+              isLoading: _enCours,
               onPressed: _soumettre,
             ),
             const SizedBox(height: 24),

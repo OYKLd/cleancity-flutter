@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/validateurs.dart';
-import '../../widgets/avatar_initiales.dart';
-import '../../widgets/bandeau_message.dart';
-import '../../widgets/bouton_principal.dart';
-import '../../widgets/cadre_formulaire.dart';
+import '../../utils/validators.dart';
+import '../../widgets/initials_avatar.dart';
+import '../../widgets/message_banner.dart';
+import '../../widgets/primary_button.dart';
+import '../../widgets/form_layout.dart';
 
 /// Modification du profil : seul le nom affiché est modifiable.
 /// L'email reste en lecture seule (le changer exigerait une reconnexion).
@@ -100,10 +100,12 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
       },
       child: Scaffold(
         appBar: AppBar(title: const Text('Modifier le profil')),
-        body: CadreFormulaire(
+        body: FormLayout(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
           children: [
-            Center(child: AvatarInitiales(nom: _nomController.text, rayon: 44)),
+            Center(
+              child: InitialsAvatar(name: _nomController.text, radius: 44),
+            ),
             const SizedBox(height: 10),
             Text(
               'Les initiales sont générées à partir de votre nom.',
@@ -112,9 +114,9 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
             ),
             const SizedBox(height: 28),
             if (_erreur != null) ...[
-              BandeauMessage(
-                texte: _erreur!,
-                onFermer: () => setState(() => _erreur = null),
+              MessageBanner(
+                text: _erreur!,
+                onClose: () => setState(() => _erreur = null),
               ),
               const SizedBox(height: 16),
             ],
@@ -129,7 +131,7 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
                     enabled: !_enCours,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.done,
-                    validator: Validateurs.nom,
+                    validator: Validators.name,
                     onFieldSubmitted: (_) => _enregistrer(),
                     decoration: const InputDecoration(
                       labelText: 'Nom complet',
@@ -150,10 +152,10 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
               ),
             ),
             const SizedBox(height: 28),
-            BoutonPrincipal(
-              libelle: 'Enregistrer',
-              icone: Icons.check,
-              enCours: _enCours,
+            PrimaryButton(
+              label: 'Enregistrer',
+              icon: Icons.check,
+              isLoading: _enCours,
               onPressed: _modifie ? _enregistrer : null,
             ),
             const SizedBox(height: 8),

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 
 /// Scrollable page body for forms: keyboard-friendly, centred and capped in
 /// width so the layout also looks right on tablets and in landscape.
-class CadreFormulaire extends StatelessWidget {
+class FormLayout extends StatelessWidget {
   final List<Widget> children;
   final EdgeInsetsGeometry padding;
-  final double largeurMax;
+  final double maxWidth;
 
-  const CadreFormulaire({
+  const FormLayout({
     super.key,
     required this.children,
     this.padding = const EdgeInsets.fromLTRB(24, 16, 24, 32),
-    this.largeurMax = 440,
+    this.maxWidth = 440,
   });
 
   @override
@@ -23,7 +23,7 @@ class CadreFormulaire extends StatelessWidget {
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: largeurMax),
+            constraints: BoxConstraints(maxWidth: maxWidth),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: children,

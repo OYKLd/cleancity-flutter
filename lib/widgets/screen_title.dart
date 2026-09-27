@@ -1,44 +1,44 @@
 import 'package:flutter/material.dart';
 
 /// Screen heading: a title with an optional subtitle.
-class TitreEcran extends StatelessWidget {
-  final String titre;
-  final String? sousTitre;
-  final bool centre;
+class ScreenTitle extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final bool centered;
 
   /// Smaller title, for dialogs and bottom sheets.
   final bool compact;
 
-  const TitreEcran({
+  const ScreenTitle({
     super.key,
-    required this.titre,
-    this.sousTitre,
-    this.centre = false,
+    required this.title,
+    this.subtitle,
+    this.centered = false,
     this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final alignementTexte = centre ? TextAlign.center : TextAlign.start;
+    final textAlign = centered ? TextAlign.center : TextAlign.start;
 
     return Column(
-      crossAxisAlignment: centre
+      crossAxisAlignment: centered
           ? CrossAxisAlignment.center
           : CrossAxisAlignment.start,
       children: [
         Text(
-          titre,
-          textAlign: alignementTexte,
+          title,
+          textAlign: textAlign,
           style: compact
               ? theme.textTheme.headlineSmall
               : theme.textTheme.headlineMedium,
         ),
-        if (sousTitre != null) ...[
+        if (subtitle != null) ...[
           const SizedBox(height: 8),
           Text(
-            sousTitre!,
-            textAlign: alignementTexte,
+            subtitle!,
+            textAlign: textAlign,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               height: 1.45,

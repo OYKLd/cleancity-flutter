@@ -1,63 +1,63 @@
 import 'package:flutter/material.dart';
 
 /// Primary call-to-action button with a built-in loading state.
-class BoutonPrincipal extends StatelessWidget {
-  final String libelle;
+class PrimaryButton extends StatelessWidget {
+  final String label;
   final VoidCallback? onPressed;
-  final bool enCours;
-  final IconData? icone;
+  final bool isLoading;
+  final IconData? icon;
 
-  const BoutonPrincipal({
+  const PrimaryButton({
     super.key,
-    required this.libelle,
+    required this.label,
     required this.onPressed,
-    this.enCours = false,
-    this.icone,
+    this.isLoading = false,
+    this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
-    final couleurs = Theme.of(context).colorScheme;
+    final colors = Theme.of(context).colorScheme;
 
     // While loading, the button is disabled but keeps its normal colours so
     // the spinner reads as "in progress" rather than "unavailable".
-    final style = enCours
+    final style = isLoading
         ? FilledButton.styleFrom(
-            disabledBackgroundColor: couleurs.primary,
-            disabledForegroundColor: couleurs.onPrimary,
+            disabledBackgroundColor: colors.primary,
+            disabledForegroundColor: colors.onPrimary,
           )
         : null;
 
-    final Widget contenu;
-    if (enCours) {
-      contenu = SizedBox(
+    final Widget content;
+    if (isLoading) {
+      content = SizedBox(
         width: 22,
         height: 22,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          color: couleurs.onPrimary,
+          color: colors.onPrimary,
           semanticsLabel: 'Chargement en cours',
         ),
       );
-    } else if (icone != null) {
-      contenu = Row(
+    } else if (icon != null) {
+      content = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icone, size: 20),
+          Icon(icon, size: 20),
           const SizedBox(width: 8),
-          Text(libelle),
+          Text(label),
         ],
       );
     } else {
-      contenu = Text(libelle);
+      content = Text(label);
     }
 
     return FilledButton(
-      onPressed: enCours ? null : onPressed,
+      onPressed: isLoading ? null : onPressed,
       style: style,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
-        child: contenu,
+        child: content,
       ),
     );
   }
