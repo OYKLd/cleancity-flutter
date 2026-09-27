@@ -230,21 +230,6 @@ class _HeaderWithStats extends StatelessWidget {
                 bottom: Radius.circular(32),
               ),
             ),
-            // Soft translucent discs give the flat gradient some depth.
-            child: const Stack(
-              children: [
-                Positioned(
-                  top: -70,
-                  right: -50,
-                  child: _Disc(diameter: 220, opacity: 0.08),
-                ),
-                Positioned(
-                  bottom: 20,
-                  left: -40,
-                  child: _Disc(diameter: 140, opacity: 0.06),
-                ),
-              ],
-            ),
           ),
         ),
         Column(
@@ -257,25 +242,6 @@ class _HeaderWithStats extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _Disc extends StatelessWidget {
-  final double diameter;
-  final double opacity;
-
-  const _Disc({required this.diameter, required this.opacity});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: diameter,
-      height: diameter,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: opacity),
-      ),
     );
   }
 }

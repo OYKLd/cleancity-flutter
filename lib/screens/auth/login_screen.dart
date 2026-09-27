@@ -80,9 +80,10 @@ class _LoginScreenState extends State<LoginScreen> {
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         body: FormLayout(
+          leaves: true,
           children: [
             const SizedBox(height: 24),
-            const AppLogo(),
+            const AppLogo(showTagline: true),
             const SizedBox(height: 32),
             const ScreenTitle(
               title: 'Connexion',
@@ -146,6 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 8),
             PrimaryButton(
               label: 'Se connecter',
+              trailingIcon: Icons.arrow_forward_rounded,
               isLoading: _isLoading,
               onPressed: _submit,
             ),
