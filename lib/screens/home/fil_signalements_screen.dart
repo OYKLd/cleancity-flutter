@@ -14,7 +14,8 @@ class FilSignalementsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('CleanCity')),
       body: const AVenir(
         icone: Icons.dynamic_feed,
-        texte: 'Fil des signalements récents\n(filtres par statut et catégorie)',
+        texte:
+            'Fil des signalements récents\n(filtres par statut et catégorie)',
         responsable: 'Dev 4 — feature/liste',
       ),
     );
