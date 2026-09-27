@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -36,6 +37,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } on AuthException {
       // The tile already shows a dash on error.
     }
+  }
+
+  void _openEditProfile(String name, String email) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditProfileScreen(name: name, email: email),
+      ),
+    );
   }
 
   Future<void> _confirmSignOut() async {
@@ -109,8 +119,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     final auth = context.watch<AuthProvider>();
+    final topInset = MediaQuery.paddingOf(context).top;
 
     final name = auth.displayName;
     final email = auth.email;
@@ -118,162 +128,273 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final memberSince =
         auth.profile?.createdAt ?? auth.user?.metadata.creationTime;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
-      body: RefreshIndicator(
-        onRefresh: _refreshReportCount,
-        child: ListView(
-          // Always scrollable so pull-to-refresh works on a short page.
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-          children: [
-            _ProfileHeader(name: name, email: email, role: role),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: FutureBuilder<int>(
-                    future: _reportCount,
-                    builder: (context, snapshot) => _StatTile(
-                      icon: Icons.flag_outlined,
-                      value: _formatCount(snapshot),
-                      label: 'Signalements',
-                    ),
-                  ),
+    // The header is painted under the status bar, so its icons must be light.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        body: RefreshIndicator(
+          onRefresh: _refreshReportCount,
+          edgeOffset: topInset,
+          child: ListView(
+            // Always scrollable so pull-to-refresh works on a short page.
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            children: [
+              _HeaderWithStats(
+                header: _HeaderContent(
+                  name: name,
+                  email: email,
+                  role: role,
+                  topInset: topInset,
+                  onEdit: () => _openEditProfile(name, email),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatTile(
-                    icon: Icons.calendar_today_outlined,
-                    value: memberSince == null
+                stats: FutureBuilder<int>(
+                  future: _reportCount,
+                  builder: (context, snapshot) => _StatsCard(
+                    reportCount: _formatCount(snapshot),
+                    memberSince: memberSince == null
                         ? '—'
                         : DateFormat.yMMM('fr_FR').format(memberSince),
-                    label: 'Membre depuis',
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 28),
-            const _SectionTitle('Compte'),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.edit_outlined),
-                    title: const Text('Modifier le profil'),
-                    subtitle: const Text('Changer le nom affiché'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            EditProfileScreen(name: name, email: email),
-                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _SectionTitle('Compte'),
+                    _SettingsCard(
+                      children: [
+                        _SettingsTile(
+                          icon: Icons.edit_outlined,
+                          title: 'Modifier le profil',
+                          subtitle: 'Changer le nom affiché',
+                          onTap: () => _openEditProfile(name, email),
+                        ),
+                        _SettingsTile(
+                          icon: Icons.info_outline,
+                          title: 'À propos de CleanCity',
+                          subtitle: 'ODD 11 et 13, Flufithon \'26',
+                          onTap: _showAbout,
+                        ),
+                      ],
                     ),
-                  ),
-                  const Divider(indent: 16, endIndent: 16),
-                  ListTile(
-                    leading: const Icon(Icons.info_outline),
-                    title: const Text('À propos de CleanCity'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _showAbout,
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    _SignOutButton(onPressed: _confirmSignOut),
+                    const SizedBox(height: 16),
+                    Text(
+                      'CleanCity · version 1.0.0',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 28),
-            OutlinedButton.icon(
-              onPressed: _confirmSignOut,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colors.error,
-                side: BorderSide(color: colors.error.withValues(alpha: 0.5)),
-              ),
-              icon: const Icon(Icons.logout),
-              label: const Text('Se déconnecter'),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'CleanCity · version 1.0.0',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _ProfileHeader extends StatelessWidget {
+/// Gradient banner behind [header], extending under the top part of [stats]
+/// so the card looks like it floats over the banner edge. Both are laid out
+/// in a column, so the banner never hides any header content.
+class _HeaderWithStats extends StatelessWidget {
+  static const double _bannerBleed = 56;
+
+  final Widget header;
+  final Widget stats;
+
+  const _HeaderWithStats({required this.header, required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          bottom: _bannerBleed,
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [colors.primary, colors.secondary],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(32),
+              ),
+            ),
+            // Soft translucent discs give the flat gradient some depth.
+            child: const Stack(
+              children: [
+                Positioned(
+                  top: -70,
+                  right: -50,
+                  child: _Disc(diameter: 220, opacity: 0.08),
+                ),
+                Positioned(
+                  bottom: 20,
+                  left: -40,
+                  child: _Disc(diameter: 140, opacity: 0.06),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Column(
+          children: [
+            header,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: stats,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _Disc extends StatelessWidget {
+  final double diameter;
+  final double opacity;
+
+  const _Disc({required this.diameter, required this.opacity});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: diameter,
+      height: diameter,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: opacity),
+      ),
+    );
+  }
+}
+
+class _HeaderContent extends StatelessWidget {
   final String name;
   final String email;
   final String role;
+  final double topInset;
+  final VoidCallback onEdit;
 
-  const _ProfileHeader({
+  const _HeaderContent({
     required this.name,
     required this.email,
     required this.role,
+    required this.topInset,
+    required this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    const onBanner = Colors.white;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            InitialsAvatar(name: name, radius: 36),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: theme.textTheme.titleLarge,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    email,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 10),
-                  _RoleBadge(role: role),
-                ],
-              ),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, topInset + 12, 24, 24),
+      child: Column(
+        children: [
+          Text(
+            'Profil',
+            style: theme.textTheme.titleMedium?.copyWith(color: onBanner),
+          ),
+          const SizedBox(height: 18),
+          _EditableAvatar(name: name, onEdit: onEdit),
+          const SizedBox(height: 14),
+          Text(
+            name,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleLarge?.copyWith(color: onBanner),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            email,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: onBanner.withValues(alpha: 0.8),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          _RoleChip(role: role),
+        ],
       ),
     );
   }
 }
 
-class _RoleBadge extends StatelessWidget {
+/// Avatar with a white ring and a small pencil badge opening the editor.
+class _EditableAvatar extends StatelessWidget {
+  final String name;
+  final VoidCallback onEdit;
+
+  const _EditableAvatar({required this.name, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Stack(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+          ),
+          child: InitialsAvatar(name: name, radius: 40),
+        ),
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: IconButton.filled(
+            onPressed: onEdit,
+            tooltip: 'Modifier le profil',
+            iconSize: 15,
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: colors.primary,
+              minimumSize: const Size(28, 28),
+              padding: EdgeInsets.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: const Icon(Icons.edit),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RoleChip extends StatelessWidget {
   final String role;
 
-  const _RoleBadge({required this.role});
+  const _RoleChip({required this.role});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     final isAdmin = role == kRoleAdmin;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isAdmin ? colors.primaryContainer : colors.secondaryContainer,
+        color: Colors.white.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -281,13 +402,13 @@ class _RoleBadge extends StatelessWidget {
           Icon(
             isAdmin ? Icons.verified_user_outlined : Icons.person_outline,
             size: 14,
-            color: colors.onSecondaryContainer,
+            color: Colors.white,
           ),
           const SizedBox(width: 6),
           Text(
             isAdmin ? 'Administrateur' : 'Citoyen',
             style: theme.textTheme.labelMedium?.copyWith(
-              color: colors.onSecondaryContainer,
+              color: Colors.white,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -297,43 +418,90 @@ class _RoleBadge extends StatelessWidget {
   }
 }
 
-class _StatTile extends StatelessWidget {
+/// Two key figures side by side.
+class _StatsCard extends StatelessWidget {
+  final String reportCount;
+  final String memberSince;
+
+  const _StatsCard({required this.reportCount, required this.memberSince});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: colors.primary.withValues(alpha: 0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            Expanded(
+              child: _Stat(
+                icon: Icons.flag_outlined,
+                value: reportCount,
+                label: 'Signalements',
+              ),
+            ),
+            const VerticalDivider(width: 1, indent: 8, endIndent: 8),
+            Expanded(
+              child: _Stat(
+                icon: Icons.calendar_today_outlined,
+                value: memberSince,
+                label: 'Membre depuis',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
 
-  const _StatTile({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
+  const _Stat({required this.icon, required this.value, required this.label});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: colors.secondary, size: 22),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: colors.primary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(label, style: theme.textTheme.bodySmall),
-          ],
+    return Column(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: colors.secondaryContainer,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 18, color: colors.primary),
         ),
-      ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: colors.primary,
+          ),
+        ),
+        Text(label, style: theme.textTheme.bodySmall),
+      ],
     );
   }
 }
@@ -354,6 +522,89 @@ class _SectionTitle extends StatelessWidget {
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
+    );
+  }
+}
+
+class _SettingsCard extends StatelessWidget {
+  final List<Widget> children;
+
+  const _SettingsCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const Divider(indent: 72, endIndent: 16),
+            children[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: colors.secondaryContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 20, color: colors.primary),
+      ),
+      title: Text(title),
+      titleTextStyle: theme.textTheme.bodyLarge?.copyWith(
+        fontWeight: FontWeight.w500,
+      ),
+      subtitle: Text(subtitle),
+      subtitleTextStyle: theme.textTheme.bodySmall,
+      trailing: Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+    );
+  }
+}
+
+class _SignOutButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _SignOutButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return FilledButton.tonalIcon(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: colors.error.withValues(alpha: 0.08),
+        foregroundColor: colors.error,
+      ),
+      icon: const Icon(Icons.logout_rounded, size: 20),
+      label: const Text('Se déconnecter'),
     );
   }
 }
