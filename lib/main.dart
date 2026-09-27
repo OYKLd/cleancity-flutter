@@ -38,7 +38,7 @@ class CleanCityApp extends StatelessWidget {
       child: MaterialApp(
         title: 'CleanCity',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.clair,
+        theme: AppTheme.light,
         home: const SplashScreen(),
       ),
     );

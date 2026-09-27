@@ -46,7 +46,7 @@ class BandeauMessage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
         decoration: BoxDecoration(
           color: fond,
-          borderRadius: BorderRadius.circular(AppTheme.rayon),
+          borderRadius: BorderRadius.circular(AppTheme.radius),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

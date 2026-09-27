@@ -5,44 +5,40 @@ import 'package:cleancity/screens/auth/login_screen.dart';
 import 'package:cleancity/screens/auth/register_screen.dart';
 import 'package:cleancity/utils/theme.dart';
 
-// Tests sans Firebase : les écrans de connexion et d'inscription n'appellent
-// aucun service, on vérifie donc uniquement l'interface et la validation.
+// No Firebase here: the login and register screens call no service yet,
+// so only the UI and the form validation are covered.
 void main() {
-  Widget appAvec(Widget ecran) {
-    return MaterialApp(theme: AppTheme.clair, home: ecran);
+  Widget buildApp(Widget screen) {
+    return MaterialApp(theme: AppTheme.light, home: screen);
   }
 
-  testWidgets('La connexion mène à l\'inscription', (tester) async {
-    await tester.pumpWidget(appAvec(const LoginScreen()));
+  testWidgets('login links to the register screen', (tester) async {
+    await tester.pumpWidget(buildApp(const LoginScreen()));
 
     expect(find.text('Connexion'), findsOneWidget);
 
-    final lien = find.text('S\'inscrire');
-    await tester.ensureVisible(lien);
-    await tester.tap(lien);
+    final link = find.text('S\'inscrire');
+    await tester.ensureVisible(link);
+    await tester.tap(link);
     await tester.pumpAndSettle();
 
     expect(find.text('Inscription'), findsOneWidget);
   });
 
-  testWidgets('La connexion affiche les erreurs des champs vides', (
-    tester,
-  ) async {
-    await tester.pumpWidget(appAvec(const LoginScreen()));
+  testWidgets('login shows errors for empty fields', (tester) async {
+    await tester.pumpWidget(buildApp(const LoginScreen()));
 
-    final bouton = find.text('Se connecter');
-    await tester.ensureVisible(bouton);
-    await tester.tap(bouton);
+    final button = find.text('Se connecter');
+    await tester.ensureVisible(button);
+    await tester.tap(button);
     await tester.pump();
 
     expect(find.text('Veuillez saisir votre adresse email.'), findsOneWidget);
     expect(find.text('Veuillez saisir votre mot de passe.'), findsOneWidget);
   });
 
-  testWidgets('L\'inscription signale des mots de passe différents', (
-    tester,
-  ) async {
-    await tester.pumpWidget(appAvec(const RegisterScreen()));
+  testWidgets('register flags mismatched passwords', (tester) async {
+    await tester.pumpWidget(buildApp(const RegisterScreen()));
 
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Nom complet'),
@@ -61,9 +57,9 @@ void main() {
       'secret2',
     );
 
-    final bouton = find.text('Créer mon compte');
-    await tester.ensureVisible(bouton);
-    await tester.tap(bouton);
+    final button = find.text('Créer mon compte');
+    await tester.ensureVisible(button);
+    await tester.tap(button);
     await tester.pump();
 
     expect(
