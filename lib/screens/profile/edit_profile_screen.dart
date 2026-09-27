@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
+import '../../services/auth_exception.dart';
 import '../../utils/validators.dart';
 import '../../widgets/form_layout.dart';
 import '../../widgets/initials_avatar.dart';
@@ -56,15 +59,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _errorMessage = null;
     });
 
-    // TODO(Dev 2): update users/{uid}.nom through AuthService.
-    await Future<void>.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.pop(context);
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Profil : enregistrement à venir.')),
-    );
+    try {
+      await context.read<AuthProvider>().updateName(
+        _nameController.text.trim(),
+      );
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Profil mis à jour.')),
+      );
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _errorMessage = e.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _confirmDiscard() async {
