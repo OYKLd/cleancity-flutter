@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
+import '../../services/auth_exception.dart';
 import '../../utils/validators.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/form_layout.dart';
@@ -48,14 +51,18 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
-    // TODO(Dev 2): call AuthProvider.signIn() and set _errorMessage on failure.
-    await Future<void>.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Connexion : logique à venir.')),
-    );
+    try {
+      await context.read<AuthProvider>().signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      // Lets the password manager offer to save the credentials.
+      TextInput.finishAutofillContext();
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _errorMessage = e.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _openRegister() {
