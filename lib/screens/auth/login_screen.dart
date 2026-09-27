@@ -1,38 +1,168 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import '../../widgets/a_venir.dart';
+import '../../utils/validateurs.dart';
+import '../../widgets/bandeau_message.dart';
+import '../../widgets/bouton_principal.dart';
+import '../../widgets/cadre_formulaire.dart';
+import '../../widgets/champ_mot_de_passe.dart';
+import '../../widgets/logo_cleancity.dart';
+import '../../widgets/titre_ecran.dart';
+import 'mot_de_passe_oublie_sheet.dart';
 import 'register_screen.dart';
 
 /// Écran de connexion (email / mot de passe).
-/// À compléter par Dev 2 (feature/auth). Après une connexion réussie,
-/// inutile de naviguer : SplashScreen bascule tout seul vers l'accueil.
-class LoginScreen extends StatelessWidget {
+/// Après une connexion réussie, inutile de naviguer : SplashScreen bascule
+/// tout seul vers l'accueil.
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _motDePasseController = TextEditingController();
+
+  // Live validation only starts after the first submit attempt, so the user
+  // is not shown errors while typing for the first time.
+  var _modeValidation = AutovalidateMode.disabled;
+  bool _enCours = false;
+  String? _erreur;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _motDePasseController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _soumettre() async {
+    FocusScope.of(context).unfocus();
+    setState(() => _modeValidation = AutovalidateMode.onUserInteraction);
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _enCours = true;
+      _erreur = null;
+    });
+
+    // TODO(Dev 2): call AuthProvider.connecter() and set _erreur on failure.
+    await Future<void>.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+    setState(() => _enCours = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Connexion : logique à venir.')),
+    );
+  }
+
+  void _ouvrirInscription() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Connexion')),
-      body: Column(
-        children: [
-          const Expanded(
-            child: AVenir(
-              icone: Icons.login,
-              texte: 'Formulaire de connexion',
-              responsable: 'Dev 2 — feature/auth',
+    final theme = Theme.of(context);
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        body: CadreFormulaire(
+          children: [
+            const SizedBox(height: 24),
+            const LogoCleanCity(),
+            const SizedBox(height: 32),
+            const TitreEcran(
+              titre: 'Connexion',
+              sousTitre:
+                  'Heureux de vous revoir ! Connectez-vous pour signaler et '
+                  'suivre les problèmes de votre quartier.',
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+            const SizedBox(height: 24),
+            if (_erreur != null) ...[
+              BandeauMessage(
+                texte: _erreur!,
+                onFermer: () => setState(() => _erreur = null),
               ),
-              child: const Text('Pas encore de compte ? S\'inscrire'),
+              const SizedBox(height: 16),
+            ],
+            Form(
+              key: _formKey,
+              autovalidateMode: _modeValidation,
+              child: AutofillGroup(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextFormField(
+                      controller: _emailController,
+                      enabled: !_enCours,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.email],
+                      autocorrect: false,
+                      validator: Validateurs.email,
+                      decoration: const InputDecoration(
+                        labelText: 'Adresse email',
+                        hintText: 'vous@exemple.com',
+                        prefixIcon: Icon(Icons.mail_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ChampMotDePasse(
+                      controller: _motDePasseController,
+                      actif: !_enCours,
+                      validator: (valeur) => Validateurs.requis(
+                        valeur,
+                        'Veuillez saisir votre mot de passe.',
+                      ),
+                      autofillHints: const [AutofillHints.password],
+                      onFieldSubmitted: (_) => _soumettre(),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _enCours
+                    ? null
+                    : () => MotDePasseOublieSheet.afficher(context),
+                child: const Text('Mot de passe oublié ?'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            BoutonPrincipal(
+              libelle: 'Se connecter',
+              enCours: _enCours,
+              onPressed: _soumettre,
+            ),
+            const SizedBox(height: 24),
+            // Wrap rather than Row: stays readable with large font settings.
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  'Pas encore de compte ?',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                TextButton(
+                  onPressed: _enCours ? null : _ouvrirInscription,
+                  child: const Text('S\'inscrire'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

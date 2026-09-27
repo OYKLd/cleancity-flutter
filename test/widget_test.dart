@@ -14,7 +14,9 @@ void main() {
 
     expect(find.text('Connexion'), findsOneWidget);
 
-    await tester.tap(find.text('Pas encore de compte ? S\'inscrire'));
+    final lien = find.text('S\'inscrire');
+    await tester.ensureVisible(lien);
+    await tester.tap(lien);
     await tester.pumpAndSettle();
 
     expect(find.text('Inscription'), findsOneWidget);

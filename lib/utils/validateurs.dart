@@ -8,6 +8,11 @@ class Validateurs {
 
   static final RegExp _formatEmail = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$');
 
+  static String? requis(String? valeur, String message) {
+    if (valeur == null || valeur.trim().isEmpty) return message;
+    return null;
+  }
+
   static String? nom(String? valeur) {
     final texte = valeur?.trim() ?? '';
     if (texte.isEmpty) return 'Veuillez saisir votre nom.';
