@@ -5,28 +5,28 @@ import '../../widgets/primary_button.dart';
 import '../../widgets/screen_title.dart';
 
 /// Bottom sheet to request a password reset link by email.
-class MotDePasseOublieSheet extends StatefulWidget {
-  const MotDePasseOublieSheet({super.key});
+class ForgotPasswordSheet extends StatefulWidget {
+  const ForgotPasswordSheet({super.key});
 
-  static Future<void> afficher(BuildContext context) {
+  static Future<void> show(BuildContext context) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => const MotDePasseOublieSheet(),
+      builder: (_) => const ForgotPasswordSheet(),
     );
   }
 
   @override
-  State<MotDePasseOublieSheet> createState() => _MotDePasseOublieSheetState();
+  State<ForgotPasswordSheet> createState() => _ForgotPasswordSheetState();
 }
 
-class _MotDePasseOublieSheetState extends State<MotDePasseOublieSheet> {
+class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
 
-  var _modeValidation = AutovalidateMode.disabled;
-  bool _enCours = false;
+  var _autovalidateMode = AutovalidateMode.disabled;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -34,11 +34,11 @@ class _MotDePasseOublieSheetState extends State<MotDePasseOublieSheet> {
     super.dispose();
   }
 
-  Future<void> _envoyer() async {
-    setState(() => _modeValidation = AutovalidateMode.onUserInteraction);
+  Future<void> _send() async {
+    setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _enCours = true);
+    setState(() => _isLoading = true);
 
     // TODO(Dev 2): call AuthService to send the reset email.
     await Future<void>.delayed(const Duration(seconds: 1));
@@ -53,13 +53,13 @@ class _MotDePasseOublieSheetState extends State<MotDePasseOublieSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final hauteurClavier = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(24, 8, 24, 24 + hauteurClavier),
+      padding: EdgeInsets.fromLTRB(24, 8, 24, 24 + keyboardInset),
       child: Form(
         key: _formKey,
-        autovalidateMode: _modeValidation,
+        autovalidateMode: _autovalidateMode,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -74,14 +74,14 @@ class _MotDePasseOublieSheetState extends State<MotDePasseOublieSheet> {
             const SizedBox(height: 24),
             TextFormField(
               controller: _emailController,
-              enabled: !_enCours,
+              enabled: !_isLoading,
               autofocus: true,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.send,
               autofillHints: const [AutofillHints.email],
               autocorrect: false,
               validator: Validators.email,
-              onFieldSubmitted: (_) => _envoyer(),
+              onFieldSubmitted: (_) => _send(),
               decoration: const InputDecoration(
                 labelText: 'Adresse email',
                 hintText: 'vous@exemple.com',
@@ -92,12 +92,12 @@ class _MotDePasseOublieSheetState extends State<MotDePasseOublieSheet> {
             PrimaryButton(
               label: 'Envoyer le lien',
               icon: Icons.send_outlined,
-              isLoading: _enCours,
-              onPressed: _envoyer,
+              isLoading: _isLoading,
+              onPressed: _send,
             ),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: _enCours ? null : () => Navigator.pop(context),
+              onPressed: _isLoading ? null : () => Navigator.pop(context),
               child: const Text('Annuler'),
             ),
           ],
