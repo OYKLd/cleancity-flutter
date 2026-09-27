@@ -23,7 +23,7 @@ class AuthProvider extends ChangeNotifier {
   bool get initialise => _initialise;
 
   AuthProvider(this._authService) {
-    _user = _authService.utilisateurActuel;
+    _user = _authService.currentUser;
     // On écoute les changements (connexion / déconnexion) pour
     // mettre à jour automatiquement l'interface.
     _abonnement = _authService.authStateChanges.listen((user) {
