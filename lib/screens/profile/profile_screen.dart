@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../services/auth_exception.dart';
 import '../../utils/constants.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/initials_avatar.dart';
@@ -10,10 +11,34 @@ import 'edit_profile_screen.dart';
 
 /// "Profil" tab: name, email, report count and sign-out. No navigation is
 /// needed after signing out: SplashScreen switches to the login screen.
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
-  Future<void> _confirmSignOut(BuildContext context) async {
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late Future<int> _reportCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _reportCount = context.read<AuthProvider>().countReports();
+  }
+
+  // The count comes from an aggregation query, not a live stream, so the
+  // user refreshes it by pulling the page down.
+  Future<void> _refreshReportCount() async {
+    setState(() => _reportCount = context.read<AuthProvider>().countReports());
+    try {
+      await _reportCount;
+    } on AuthException {
+      // The tile already shows a dash on error.
+    }
+  }
+
+  Future<void> _confirmSignOut() async {
     final colors = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -36,15 +61,19 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (confirmed != true || !mounted) return;
 
-    // TODO(Dev 2): call AuthProvider.signOut().
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Déconnexion : logique à venir.')),
-    );
+    try {
+      await context.read<AuthProvider>().signOut();
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 
-  void _showAbout(BuildContext context) {
+  void _showAbout() {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -71,96 +100,106 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  String _formatCount(AsyncSnapshot<int> snapshot) {
+    if (snapshot.hasError) return '—';
+    if (!snapshot.hasData) return '…';
+    return '${snapshot.data}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final user = context.watch<AuthProvider>().user;
+    final auth = context.watch<AuthProvider>();
 
-    // TODO(Dev 2): read name/role from users/{uid} and the report count.
-    final firebaseName = user?.displayName?.trim() ?? '';
-    final name = firebaseName.isNotEmpty
-        ? firebaseName
-        : 'Utilisateur CleanCity';
-    final email = user?.email ?? '';
-    const role = kRoleCitoyen;
-    const reportCount = 0;
-    final memberSince = user?.metadata.creationTime;
+    final name = auth.displayName;
+    final email = auth.email;
+    final role = auth.profile?.role ?? kRoleCitoyen;
+    final memberSince =
+        auth.profile?.createdAt ?? auth.user?.metadata.creationTime;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-        children: [
-          _ProfileHeader(name: name, email: email, role: role),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _StatTile(
-                  icon: Icons.flag_outlined,
-                  value: '$reportCount',
-                  label: 'Signalements',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatTile(
-                  icon: Icons.calendar_today_outlined,
-                  value: memberSince == null
-                      ? '—'
-                      : DateFormat.yMMM('fr_FR').format(memberSince),
-                  label: 'Membre depuis',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-          const _SectionTitle('Compte'),
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(
+      body: RefreshIndicator(
+        onRefresh: _refreshReportCount,
+        child: ListView(
+          // Always scrollable so pull-to-refresh works on a short page.
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+          children: [
+            _ProfileHeader(name: name, email: email, role: role),
+            const SizedBox(height: 16),
+            Row(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.edit_outlined),
-                  title: const Text('Modifier le profil'),
-                  subtitle: const Text('Changer le nom affiché'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          EditProfileScreen(name: name, email: email),
+                Expanded(
+                  child: FutureBuilder<int>(
+                    future: _reportCount,
+                    builder: (context, snapshot) => _StatTile(
+                      icon: Icons.flag_outlined,
+                      value: _formatCount(snapshot),
+                      label: 'Signalements',
                     ),
                   ),
                 ),
-                const Divider(indent: 16, endIndent: 16),
-                ListTile(
-                  leading: const Icon(Icons.info_outline),
-                  title: const Text('À propos de CleanCity'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showAbout(context),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatTile(
+                    icon: Icons.calendar_today_outlined,
+                    value: memberSince == null
+                        ? '—'
+                        : DateFormat.yMMM('fr_FR').format(memberSince),
+                    label: 'Membre depuis',
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 28),
-          OutlinedButton.icon(
-            onPressed: () => _confirmSignOut(context),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: colors.error,
-              side: BorderSide(color: colors.error.withValues(alpha: 0.5)),
+            const SizedBox(height: 28),
+            const _SectionTitle('Compte'),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.edit_outlined),
+                    title: const Text('Modifier le profil'),
+                    subtitle: const Text('Changer le nom affiché'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            EditProfileScreen(name: name, email: email),
+                      ),
+                    ),
+                  ),
+                  const Divider(indent: 16, endIndent: 16),
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('À propos de CleanCity'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _showAbout,
+                  ),
+                ],
+              ),
             ),
-            icon: const Icon(Icons.logout),
-            label: const Text('Se déconnecter'),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'CleanCity · version 1.0.0',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall,
-          ),
-        ],
+            const SizedBox(height: 28),
+            OutlinedButton.icon(
+              onPressed: _confirmSignOut,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colors.error,
+                side: BorderSide(color: colors.error.withValues(alpha: 0.5)),
+              ),
+              icon: const Icon(Icons.logout),
+              label: const Text('Se déconnecter'),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'CleanCity · version 1.0.0',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ),
       ),
     );
   }
