@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 class ChampMotDePasse extends StatefulWidget {
   final TextEditingController? controller;
   final String libelle;
+  final String? indice;
   final String? aide;
   final FormFieldValidator<String>? validator;
   final TextInputAction textInputAction;
@@ -15,6 +16,7 @@ class ChampMotDePasse extends StatefulWidget {
     super.key,
     this.controller,
     this.libelle = 'Mot de passe',
+    this.indice,
     this.aide,
     this.validator,
     this.textInputAction = TextInputAction.done,
@@ -45,6 +47,7 @@ class _ChampMotDePasseState extends State<ChampMotDePasse> {
       enableSuggestions: false,
       decoration: InputDecoration(
         labelText: widget.libelle,
+        hintText: widget.indice,
         helperText: widget.aide,
         prefixIcon: const Icon(Icons.lock_outline),
         suffixIcon: IconButton(

@@ -143,7 +143,6 @@ class _ModifierProfilScreenState extends State<ModifierProfilScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Adresse email',
                       prefixIcon: Icon(Icons.mail_outline),
-                      suffixIcon: Icon(Icons.lock_outline),
                       helperText: 'L\'adresse email ne peut pas être modifiée.',
                     ),
                   ),
