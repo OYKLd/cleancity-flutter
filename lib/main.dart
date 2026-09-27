@@ -8,6 +8,7 @@ import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
 import 'services/auth_service.dart';
+import 'services/user_service.dart';
 import 'utils/theme.dart';
 
 Future<void> main() async {
@@ -34,7 +35,7 @@ class CleanCityApp extends StatelessWidget {
     // AuthProvider est placé au-dessus de MaterialApp : tous les écrans
     // peuvent donc savoir qui est connecté avec context.watch<AuthProvider>().
     return ChangeNotifierProvider(
-      create: (_) => AuthProvider(AuthService()),
+      create: (_) => AuthProvider(AuthService(), UserService()),
       child: MaterialApp(
         title: 'CleanCity',
         debugShowCheckedModeBanner: false,
