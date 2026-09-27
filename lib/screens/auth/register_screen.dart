@@ -73,6 +73,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final colors = theme.colorScheme;
 
     return Scaffold(
+      // The leaves are painted from the very top, behind the transparent bar;
+      // FormLayout's SafeArea keeps the content below the back arrow.
+      extendBodyBehindAppBar: true,
       // Light app bar on this onboarding screen: only the back arrow matters.
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -80,6 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
       body: FormLayout(
+        leaves: true,
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
         children: [
           const AppLogo(size: 56, showName: false),
@@ -168,6 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SizedBox(height: 20),
           PrimaryButton(
             label: 'Créer mon compte',
+            trailingIcon: Icons.arrow_forward_rounded,
             isLoading: _isLoading,
             onPressed: _submit,
           ),

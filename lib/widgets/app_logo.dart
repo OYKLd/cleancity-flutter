@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
-/// App logo: leaf icon on a mint disc, optionally followed by the app name.
+/// App logo: leaf icon on a mint disc, optionally followed by the two-tone
+/// wordmark and the tagline.
 class AppLogo extends StatelessWidget {
   final double size;
   final bool showName;
+  final bool showTagline;
 
-  const AppLogo({super.key, this.size = 72, this.showName = true});
+  const AppLogo({
+    super.key,
+    this.size = 64,
+    this.showName = true,
+    this.showTagline = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,11 +40,33 @@ class AppLogo extends StatelessWidget {
           ),
           if (showName) ...[
             const SizedBox(height: 12),
-            Text(
-              'CleanCity',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: colors.primary,
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Clean',
+                    style: TextStyle(color: colors.primary),
+                  ),
+                  TextSpan(
+                    text: 'City',
+                    style: TextStyle(color: colors.secondary),
+                  ),
+                ],
+              ),
+              style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
+          if (showTagline) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Une ville plus propre,\nc\'est possible',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                letterSpacing: 1.2,
+                height: 1.5,
               ),
             ),
           ],

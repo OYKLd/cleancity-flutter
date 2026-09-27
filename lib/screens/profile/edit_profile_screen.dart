@@ -101,6 +101,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return PopScope(
       canPop: !_hasChanges,
@@ -110,10 +111,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: Scaffold(
         appBar: AppBar(title: const Text('Modifier le profil')),
         body: FormLayout(
+          leaves: true,
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
           children: [
             Center(
-              child: InitialsAvatar(name: _nameController.text, radius: 44),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: colors.primaryContainer, width: 2),
+                ),
+                child: InitialsAvatar(name: _nameController.text, radius: 44),
+              ),
             ),
             const SizedBox(height: 10),
             Text(

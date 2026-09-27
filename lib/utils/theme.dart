@@ -21,7 +21,7 @@ class AppTheme {
   /// Bundled in assets/fonts so the app never depends on the network for text.
   static const String fontFamily = 'Poppins';
 
-  static const double radius = 14;
+  static const double radius = 18;
 
   static ThemeData get light {
     // Dark evergreen as primary: strong contrast on light surfaces (~9:1),
@@ -61,7 +61,7 @@ class AppTheme {
     final textTheme = base.textTheme.copyWith(
       headlineMedium: base.textTheme.headlineMedium?.copyWith(
         fontSize: 26,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         color: ink,
       ),
       headlineSmall: base.textTheme.headlineSmall?.copyWith(
@@ -99,10 +99,8 @@ class AppTheme {
       ),
     );
 
-    final buttonShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(radius),
-    );
-    const buttonSize = Size.fromHeight(52);
+    const buttonShape = StadiumBorder();
+    const buttonSize = Size.fromHeight(54);
 
     OutlineInputBorder fieldBorder(Color color, [double width = 1]) {
       return OutlineInputBorder(
@@ -170,11 +168,11 @@ class AppTheme {
         filled: true,
         fillColor: colorScheme.surfaceContainerLow,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
+          horizontal: 18,
+          vertical: 18,
         ),
-        border: fieldBorder(mint),
-        enabledBorder: fieldBorder(mint),
+        border: fieldBorder(sageHint),
+        enabledBorder: fieldBorder(sageHint),
         focusedBorder: fieldBorder(evergreen, 1.6),
         errorBorder: fieldBorder(colorScheme.error),
         focusedErrorBorder: fieldBorder(colorScheme.error, 1.6),
@@ -183,7 +181,7 @@ class AppTheme {
         floatingLabelStyle: const TextStyle(color: evergreen),
         hintStyle: TextStyle(color: inkMuted.withValues(alpha: 0.7)),
         helperStyle: textTheme.bodySmall,
-        prefixIconColor: moss,
+        prefixIconColor: evergreen,
         suffixIconColor: moss,
       ),
       cardTheme: CardThemeData(
@@ -191,7 +189,7 @@ class AppTheme {
         color: colorScheme.surfaceContainerLowest,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: sageHint),
         ),
       ),
@@ -224,7 +222,7 @@ class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: colorScheme.surfaceContainerLowest,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         titleTextStyle: textTheme.titleLarge,
         contentTextStyle: textTheme.bodyMedium,
       ),
@@ -232,7 +230,7 @@ class AppTheme {
         backgroundColor: colorScheme.surfaceContainerLowest,
         showDragHandle: true,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(

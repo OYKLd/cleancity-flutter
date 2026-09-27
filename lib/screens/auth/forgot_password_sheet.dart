@@ -74,6 +74,7 @@ class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
   @override
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final colors = Theme.of(context).colorScheme;
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(24, 8, 24, 24 + keyboardInset),
@@ -84,12 +85,29 @@ class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Center(
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.lock_reset_rounded,
+                  size: 30,
+                  color: colors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             const ScreenTitle(
               title: 'Mot de passe oublié',
               subtitle:
                   'Indiquez votre adresse email : nous vous enverrons un lien '
                   'pour choisir un nouveau mot de passe.',
               compact: true,
+              centered: true,
             ),
             const SizedBox(height: 24),
             if (_errorMessage != null) ...[
