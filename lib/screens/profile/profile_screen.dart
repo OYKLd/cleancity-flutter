@@ -4,21 +4,20 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
-import '../../widgets/initials_avatar.dart';
 import '../../widgets/app_logo.dart';
-import 'modifier_profil_screen.dart';
+import '../../widgets/initials_avatar.dart';
+import 'edit_profile_screen.dart';
 
-/// Onglet « Profil » : nom, email, nombre de signalements, déconnexion.
-/// Après la déconnexion, inutile de naviguer : SplashScreen bascule tout seul
-/// vers l'écran de connexion.
-class ProfilScreen extends StatelessWidget {
-  const ProfilScreen({super.key});
+/// "Profil" tab: name, email, report count and sign-out. No navigation is
+/// needed after signing out: SplashScreen switches to the login screen.
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
 
-  Future<void> _confirmerDeconnexion(BuildContext context) async {
-    final couleurs = Theme.of(context).colorScheme;
-    final confirme = await showDialog<bool>(
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final colors = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (contexte) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Se déconnecter ?'),
         content: const Text(
           'Vous devrez vous reconnecter pour publier ou suivre vos '
@@ -26,29 +25,29 @@ class ProfilScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(contexte, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Annuler'),
           ),
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: couleurs.error),
-            onPressed: () => Navigator.pop(contexte, true),
+            style: TextButton.styleFrom(foregroundColor: colors.error),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('Se déconnecter'),
           ),
         ],
       ),
     );
-    if (confirme != true || !context.mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
-    // TODO(Dev 2): call AuthProvider.deconnecter().
+    // TODO(Dev 2): call AuthProvider.signOut().
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Déconnexion : logique à venir.')),
     );
   }
 
-  void _afficherAPropos(BuildContext context) {
+  void _showAbout(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder: (contexte) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Row(
           children: [
             AppLogo(size: 40, showName: false),
@@ -64,7 +63,7 @@ class ProfilScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(contexte),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Fermer'),
           ),
         ],
@@ -75,47 +74,49 @@ class ProfilScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
-    final utilisateur = context.watch<AuthProvider>().user;
+    final colors = theme.colorScheme;
+    final user = context.watch<AuthProvider>().user;
 
-    // TODO(Dev 2): read nom/role from users/{uid} and the signalement count.
-    final nomFirebase = utilisateur?.displayName?.trim() ?? '';
-    final nom = nomFirebase.isNotEmpty ? nomFirebase : 'Utilisateur CleanCity';
-    final email = utilisateur?.email ?? '';
+    // TODO(Dev 2): read name/role from users/{uid} and the report count.
+    final firebaseName = user?.displayName?.trim() ?? '';
+    final name = firebaseName.isNotEmpty
+        ? firebaseName
+        : 'Utilisateur CleanCity';
+    final email = user?.email ?? '';
     const role = kRoleCitoyen;
-    const nbSignalements = 0;
-    final membreDepuis = utilisateur?.metadata.creationTime;
+    const reportCount = 0;
+    final memberSince = user?.metadata.creationTime;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
         children: [
-          _EnTeteProfil(nom: nom, email: email, role: role),
+          _ProfileHeader(name: name, email: email, role: role),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: _TuileStatistique(
-                  icone: Icons.flag_outlined,
-                  valeur: '$nbSignalements',
-                  libelle: 'Signalements',
+                child: _StatTile(
+                  icon: Icons.flag_outlined,
+                  value: '$reportCount',
+                  label: 'Signalements',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _TuileStatistique(
-                  icone: Icons.calendar_today_outlined,
-                  valeur: membreDepuis == null
+                child: _StatTile(
+                  icon: Icons.calendar_today_outlined,
+                  value: memberSince == null
                       ? '—'
-                      : DateFormat.yMMM('fr_FR').format(membreDepuis),
-                  libelle: 'Membre depuis',
+                      : DateFormat.yMMM('fr_FR').format(memberSince),
+                  label: 'Membre depuis',
                 ),
               ),
             ],
           ),
           const SizedBox(height: 28),
-          const _TitreSection('Compte'),
+          const _SectionTitle('Compte'),
           Card(
             clipBehavior: Clip.antiAlias,
             child: Column(
@@ -129,7 +130,7 @@ class ProfilScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) =>
-                          ModifierProfilScreen(nom: nom, email: email),
+                          EditProfileScreen(name: name, email: email),
                     ),
                   ),
                 ),
@@ -138,17 +139,17 @@ class ProfilScreen extends StatelessWidget {
                   leading: const Icon(Icons.info_outline),
                   title: const Text('À propos de CleanCity'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _afficherAPropos(context),
+                  onTap: () => _showAbout(context),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 28),
           OutlinedButton.icon(
-            onPressed: () => _confirmerDeconnexion(context),
+            onPressed: () => _confirmSignOut(context),
             style: OutlinedButton.styleFrom(
-              foregroundColor: couleurs.error,
-              side: BorderSide(color: couleurs.error.withValues(alpha: 0.5)),
+              foregroundColor: colors.error,
+              side: BorderSide(color: colors.error.withValues(alpha: 0.5)),
             ),
             icon: const Icon(Icons.logout),
             label: const Text('Se déconnecter'),
@@ -165,13 +166,13 @@ class ProfilScreen extends StatelessWidget {
   }
 }
 
-class _EnTeteProfil extends StatelessWidget {
-  final String nom;
+class _ProfileHeader extends StatelessWidget {
+  final String name;
   final String email;
   final String role;
 
-  const _EnTeteProfil({
-    required this.nom,
+  const _ProfileHeader({
+    required this.name,
     required this.email,
     required this.role,
   });
@@ -185,14 +186,14 @@ class _EnTeteProfil extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            InitialsAvatar(name: nom, radius: 36),
+            InitialsAvatar(name: name, radius: 36),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    nom,
+                    name,
                     style: theme.textTheme.titleLarge,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -207,7 +208,7 @@ class _EnTeteProfil extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 10),
-                  _BadgeRole(role: role),
+                  _RoleBadge(role: role),
                 ],
               ),
             ),
@@ -218,38 +219,36 @@ class _EnTeteProfil extends StatelessWidget {
   }
 }
 
-class _BadgeRole extends StatelessWidget {
+class _RoleBadge extends StatelessWidget {
   final String role;
 
-  const _BadgeRole({required this.role});
+  const _RoleBadge({required this.role});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
-    final estAdmin = role == kRoleAdmin;
+    final colors = theme.colorScheme;
+    final isAdmin = role == kRoleAdmin;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: estAdmin
-            ? couleurs.primaryContainer
-            : couleurs.secondaryContainer,
+        color: isAdmin ? colors.primaryContainer : colors.secondaryContainer,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            estAdmin ? Icons.verified_user_outlined : Icons.person_outline,
+            isAdmin ? Icons.verified_user_outlined : Icons.person_outline,
             size: 14,
-            color: couleurs.onSecondaryContainer,
+            color: colors.onSecondaryContainer,
           ),
           const SizedBox(width: 6),
           Text(
-            estAdmin ? 'Administrateur' : 'Citoyen',
+            isAdmin ? 'Administrateur' : 'Citoyen',
             style: theme.textTheme.labelMedium?.copyWith(
-              color: couleurs.onSecondaryContainer,
+              color: colors.onSecondaryContainer,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -259,21 +258,21 @@ class _BadgeRole extends StatelessWidget {
   }
 }
 
-class _TuileStatistique extends StatelessWidget {
-  final IconData icone;
-  final String valeur;
-  final String libelle;
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
 
-  const _TuileStatistique({
-    required this.icone,
-    required this.valeur,
-    required this.libelle,
+  const _StatTile({
+    required this.icon,
+    required this.value,
+    required this.label,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
+    final colors = theme.colorScheme;
 
     return Card(
       child: Padding(
@@ -281,18 +280,18 @@ class _TuileStatistique extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icone, color: couleurs.secondary, size: 22),
+            Icon(icon, color: colors.secondary, size: 22),
             const SizedBox(height: 12),
             Text(
-              valeur,
+              value,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: couleurs.primary,
+                color: colors.primary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            Text(libelle, style: theme.textTheme.bodySmall),
+            Text(label, style: theme.textTheme.bodySmall),
           ],
         ),
       ),
@@ -300,10 +299,10 @@ class _TuileStatistique extends StatelessWidget {
   }
 }
 
-class _TitreSection extends StatelessWidget {
-  final String titre;
+class _SectionTitle extends StatelessWidget {
+  final String title;
 
-  const _TitreSection(this.titre);
+  const _SectionTitle(this.title);
 
   @override
   Widget build(BuildContext context) {
@@ -311,7 +310,7 @@ class _TitreSection extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
-        titre,
+        title,
         style: theme.textTheme.titleSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
