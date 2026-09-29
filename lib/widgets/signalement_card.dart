@@ -148,7 +148,7 @@ class SignalementCard extends StatelessWidget {
     }
 
     return '${morceaux.first.substring(0, 1)}'
-        '${morceaux.last.substring(0, 1)}'
+            '${morceaux.last.substring(0, 1)}'
         .toUpperCase();
   }
 }
