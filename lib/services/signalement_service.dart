@@ -8,8 +8,13 @@ class SignalementService {
   // TODO(Dev 3) : creerSignalement(Signalement s)
 
   /// Dev 4 : Stream des signalements récents avec filtres optionnels
-  Stream<List<Signalement>> getSignalements({String? statut, String? categorie}) {
-    Query<Map<String, dynamic>> query = _db.collection('signalements').orderBy('createdAt', descending: true);
+  Stream<List<Signalement>> getSignalements({
+    String? statut,
+    String? categorie,
+  }) {
+    Query<Map<String, dynamic>> query = _db
+        .collection('signalements')
+        .orderBy('createdAt', descending: true);
 
     if (statut != null && statut.isNotEmpty && statut != 'tous') {
       query = query.where('statut', isEqualTo: statut);
@@ -19,7 +24,9 @@ class SignalementService {
     }
 
     return query.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => Signalement.fromFirestore(doc)).toList();
+      return snapshot.docs
+          .map((doc) => Signalement.fromFirestore(doc))
+          .toList();
     });
   }
 
@@ -30,7 +37,11 @@ class SignalementService {
         .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => Signalement.fromFirestore(doc)).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Signalement.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   /// Dev 4 : changerStatut(id, statut) — réservé à l'admin

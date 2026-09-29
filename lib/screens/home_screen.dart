@@ -36,9 +36,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'tous', child: Text('Tous statuts')),
-                      DropdownMenuItem(value: 'en_attente', child: Text('En attente')),
-                      DropdownMenuItem(value: 'en_cours', child: Text('En cours')),
+                      DropdownMenuItem(
+                        value: 'tous',
+                        child: Text('Tous statuts'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'en_attente',
+                        child: Text('En attente'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'en_cours',
+                        child: Text('En cours'),
+                      ),
                       DropdownMenuItem(value: 'resolu', child: Text('Résolu')),
                     ],
                     onChanged: (val) => setState(() => _selectedStatut = val!),
@@ -53,13 +62,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'toutes', child: Text('Toutes catégories')),
-                      DropdownMenuItem(value: 'ordures', child: Text('Ordures')),
-                      DropdownMenuItem(value: 'caniveau', child: Text('Caniveau')),
-                      DropdownMenuItem(value: 'eau_stagnante', child: Text('Eau stagnante')),
+                      DropdownMenuItem(
+                        value: 'toutes',
+                        child: Text('Toutes catégories'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'ordures',
+                        child: Text('Ordures'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'caniveau',
+                        child: Text('Caniveau'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'eau_stagnante',
+                        child: Text('Eau stagnante'),
+                      ),
                       DropdownMenuItem(value: 'autre', child: Text('Autre')),
                     ],
-                    onChanged: (val) => setState(() => _selectedCategorie = val!),
+                    onChanged: (val) =>
+                        setState(() => _selectedCategorie = val!),
                   ),
                 ),
               ],
@@ -91,7 +113,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemBuilder: (context, index) {
                     final item = signalements[index];
                     return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       child: ListTile(
                         title: Text(item.categorie.toUpperCase()),
                         subtitle: Text('${item.commune} • ${item.statut}'),
@@ -100,7 +125,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => DetailScreen(signalement: item),
+                              builder: (context) =>
+                                  DetailScreen(signalement: item),
                             ),
                           );
                         },

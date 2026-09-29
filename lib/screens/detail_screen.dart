@@ -12,7 +12,9 @@ class DetailScreen extends StatelessWidget {
   const DetailScreen({super.key, required this.signalement});
 
   Future<void> _ouvrirGoogleMaps(double lat, double lng) async {
-    final Uri url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final Uri url = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+    );
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       throw Exception('Impossible d\'ouvrir Google Maps');
     }
@@ -48,19 +50,29 @@ class DetailScreen extends StatelessWidget {
               children: [
                 Chip(label: Text(signalement.categorie.toUpperCase())),
                 Chip(
-                  label: Text(signalement.statut.replaceAll('_', ' ').toUpperCase()),
+                  label: Text(
+                    signalement.statut.replaceAll('_', ' ').toUpperCase(),
+                  ),
                   backgroundColor: signalement.statut == 'resolu'
                       ? Colors.green[100]
-                      : (signalement.statut == 'en_cours' ? Colors.orange[100] : Colors.grey[200]),
+                      : (signalement.statut == 'en_cours'
+                            ? Colors.orange[100]
+                            : Colors.grey[200]),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text('Commune : ${signalement.commune}', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Commune : ${signalement.commune}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             if (signalement.repere != null && signalement.repere!.isNotEmpty)
               Text('Repère : ${signalement.repere}'),
             const SizedBox(height: 8),
-            Text('Description :', style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              'Description :',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             Text(signalement.description),
             const SizedBox(height: 16),
             if (signalement.latitude != null && signalement.longitude != null)
@@ -69,24 +81,34 @@ class DetailScreen extends StatelessWidget {
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.map),
                   label: const Text('Voir sur Google Maps'),
-                  onPressed: () => _ouvrirGoogleMaps(signalement.latitude!, signalement.longitude!),
+                  onPressed: () => _ouvrirGoogleMaps(
+                    signalement.latitude!,
+                    signalement.longitude!,
+                  ),
                 ),
               ),
             if (isAdmin) ...[
               const Divider(height: 32),
-              Text('Gestion Admin - Modifier le statut :', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Gestion Admin - Modifier le statut :',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(
                     onPressed: () => _changerStatut(context, 'en_cours'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                    ),
                     child: const Text('En cours'),
                   ),
                   ElevatedButton(
                     onPressed: () => _changerStatut(context, 'resolu'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
                     child: const Text('Résolu'),
                   ),
                 ],
@@ -103,7 +125,11 @@ class DetailScreen extends StatelessWidget {
       await SignalementService().changerStatut(signalement.id, nouveauStatut);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Statut mis à jour : ${nouveauStatut.replaceAll('_', ' ')}')),
+          SnackBar(
+            content: Text(
+              'Statut mis à jour : ${nouveauStatut.replaceAll('_', ' ')}',
+            ),
+          ),
         );
       }
     } catch (e) {

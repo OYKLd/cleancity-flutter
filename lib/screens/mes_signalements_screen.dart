@@ -16,7 +16,9 @@ class MesSignalementsScreen extends StatelessWidget {
     if (userId == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Mes Signalements')),
-        body: const Center(child: Text('Veuillez vous connecter pour voir vos signalements.')),
+        body: const Center(
+          child: Text('Veuillez vous connecter pour voir vos signalements.'),
+        ),
       );
     }
 
@@ -34,7 +36,9 @@ class MesSignalementsScreen extends StatelessWidget {
 
           final mesSignalements = snapshot.data ?? [];
           if (mesSignalements.isEmpty) {
-            return const Center(child: Text('Vous n\'avez encore créé aucun signalement.'));
+            return const Center(
+              child: Text('Vous n\'avez encore créé aucun signalement.'),
+            );
           }
 
           return ListView.builder(
@@ -45,7 +49,9 @@ class MesSignalementsScreen extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: ListTile(
                   title: Text(item.categorie.toUpperCase()),
-                  subtitle: Text('${item.commune} • ${item.statut.replaceAll('_', ' ')}'),
+                  subtitle: Text(
+                    '${item.commune} • ${item.statut.replaceAll('_', ' ')}',
+                  ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
                     Navigator.push(
