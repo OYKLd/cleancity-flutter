@@ -16,6 +16,8 @@ analyzer:
   # part of the project.
   exclude:
     - build/**
+    - android/**
+    - ios/**
 
 formatter:
   page_width: 80
