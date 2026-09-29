@@ -1,17 +1,19 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/signalement.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/image_service.dart';
+import '../../services/location_service.dart';
 import '../../services/signalement_service.dart';
 import '../../utils/constants.dart';
 
-/// Création d'un signalement : photo, catégorie, urgence, description.
-/// GPS et analyse IA seront ajoutés dans une prochaine étape (Dev 3 / Dev 5).
+/// Création d'un signalement : photo, catégorie, urgence, description,
+/// localisation (GPS ou commune + repère en secours).
 class NouveauSignalementScreen extends StatefulWidget {
   const NouveauSignalementScreen({super.key});
 
@@ -22,17 +24,26 @@ class NouveauSignalementScreen extends StatefulWidget {
 
 class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
   final ImageService _imageService = ImageService();
+  final LocationService _locationService = LocationService();
   final SignalementService _signalementService = SignalementService();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _repereController = TextEditingController();
 
   String? _photoBase64;
   String? _categorieChoisie;
   String? _urgenceChoisie;
   bool _envoiEnCours = false;
 
+  // Localisation : soit une position GPS, soit une saisie manuelle.
+  Position? _position;
+  bool _recherchePositionEnCours = false;
+  bool _saisieManuelle = false;
+  String? _communeChoisie;
+
   @override
   void dispose() {
     _descriptionController.dispose();
+    _repereController.dispose();
     super.dispose();
   }
 
@@ -43,6 +54,27 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
       setState(() => _photoBase64 = base64);
     } catch (e) {
       _afficherErreur(e.toString());
+    }
+  }
+
+  Future<void> _recupererPosition() async {
+    setState(() => _recherchePositionEnCours = true);
+    final position = await _locationService.obtenirPosition();
+    if (!mounted) return;
+    setState(() {
+      _recherchePositionEnCours = false;
+      if (position != null) {
+        _position = position;
+        _saisieManuelle = false;
+      } else {
+        _position = null;
+        _saisieManuelle = true;
+      }
+    });
+    if (position == null) {
+      _afficherErreur(
+        "Position indisponible. Indique ta commune et un repère.",
+      );
     }
   }
 
@@ -84,6 +116,12 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
         photoBase64: _photoBase64!,
         categorie: _categorieChoisie!,
         urgence: _urgenceChoisie!,
+        latitude: _position?.latitude,
+        longitude: _position?.longitude,
+        commune: _saisieManuelle ? _communeChoisie : null,
+        repere: _saisieManuelle && _repereController.text.trim().isNotEmpty
+            ? _repereController.text.trim()
+            : null,
       );
       await _signalementService.creerSignalement(signalement);
       if (!mounted) return;
@@ -120,8 +158,7 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
               decoration: const InputDecoration(labelText: 'Catégorie'),
               items: kCategories.entries
                   .map(
-                    (e) =>
-                        DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
                   )
                   .toList(),
               onChanged: _envoiEnCours
@@ -134,8 +171,7 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
               decoration: const InputDecoration(labelText: 'Urgence'),
               items: kUrgences.entries
                   .map(
-                    (e) =>
-                        DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
                   )
                   .toList(),
               onChanged: _envoiEnCours
@@ -154,6 +190,8 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
                 alignLabelWithHint: true,
               ),
             ),
+            const SizedBox(height: 8),
+            _blocLocalisation(context),
             const SizedBox(height: 8),
             FilledButton.icon(
               onPressed: _envoiEnCours ? null : _envoyerSignalement,
@@ -244,6 +282,96 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _blocLocalisation(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Localisation (facultative)',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_position != null && !_saisieManuelle) ...[
+            Row(
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(child: Text('Position GPS récupérée')),
+                TextButton(
+                  onPressed: _envoiEnCours
+                      ? null
+                      : () => setState(() => _saisieManuelle = true),
+                  child: const Text('Saisir manuellement'),
+                ),
+              ],
+            ),
+          ] else ...[
+            OutlinedButton.icon(
+              onPressed: (_envoiEnCours || _recherchePositionEnCours)
+                  ? null
+                  : _recupererPosition,
+              icon: _recherchePositionEnCours
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.my_location),
+              label: Text(
+                _recherchePositionEnCours
+                    ? 'Recherche en cours...'
+                    : 'Utiliser ma position GPS',
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _communeChoisie,
+              decoration: const InputDecoration(labelText: 'Commune'),
+              items: kCommunes
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .toList(),
+              onChanged: _envoiEnCours
+                  ? null
+                  : (valeur) => setState(() {
+                      _communeChoisie = valeur;
+                      _saisieManuelle = true;
+                    }),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _repereController,
+              enabled: !_envoiEnCours,
+              decoration: const InputDecoration(
+                labelText: 'Repère (optionnel)',
+                hintText: 'Ex. : près du marché, en face de la pharmacie...',
+              ),
+              onChanged: (_) => setState(() => _saisieManuelle = true),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
