@@ -158,7 +158,8 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
               decoration: const InputDecoration(labelText: 'Catégorie'),
               items: kCategories.entries
                   .map(
-                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    (e) =>
+                        DropdownMenuItem(value: e.key, child: Text(e.value)),
                   )
                   .toList(),
               onChanged: _envoiEnCours
@@ -171,7 +172,8 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
               decoration: const InputDecoration(labelText: 'Urgence'),
               items: kUrgences.entries
                   .map(
-                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    (e) =>
+                        DropdownMenuItem(value: e.key, child: Text(e.value)),
                   )
                   .toList(),
               onChanged: _envoiEnCours
