@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import 'auth/login_screen.dart';
-import 'home/home_screen.dart';
+import 'home/fil_signalements_screen.dart';
 
 /// Premier écran affiché : choisit la destination selon l'état de connexion.
 /// Comme il « écoute » AuthProvider, il se reconstruit tout seul à chaque
@@ -18,7 +18,8 @@ class SplashScreen extends StatelessWidget {
     if (!auth.initialise) {
       return const _EcranChargement();
     }
-    return auth.estConnecte ? const HomeScreen() : const LoginScreen();
+    // Remplacement de HomeScreen() par FilSignalementsScreen()
+    return auth.estConnecte ? const FilSignalementsScreen() : const LoginScreen();
   }
 }
 
