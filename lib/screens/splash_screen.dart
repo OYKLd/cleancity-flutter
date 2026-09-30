@@ -19,7 +19,9 @@ class SplashScreen extends StatelessWidget {
       return const _EcranChargement();
     }
     // Remplacement de HomeScreen() par FilSignalementsScreen()
-    return auth.estConnecte ? const FilSignalementsScreen() : const LoginScreen();
+    return auth.estConnecte
+        ? const FilSignalementsScreen()
+        : const LoginScreen();
   }
 }
 

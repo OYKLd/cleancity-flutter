@@ -68,7 +68,8 @@ class MesSignalementsScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DetailSignalementScreen(signalement: item),
+                        builder: (context) =>
+                            DetailSignalementScreen(signalement: item),
                       ),
                     );
                   },

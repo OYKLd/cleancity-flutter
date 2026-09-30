@@ -19,7 +19,9 @@ class _FilSignalementsScreenState extends State<FilSignalementsScreen> {
   String? _selectedCategorie;
 
   /// Helper pour convertir kStatuts / kCategories en liste de DropdownMenuItem
-  List<DropdownMenuItem<String?>> _buildDropdownItems(dynamic constantsMapOrList) {
+  List<DropdownMenuItem<String?>> _buildDropdownItems(
+    dynamic constantsMapOrList,
+  ) {
     if (constantsMapOrList is Map<String, String>) {
       return constantsMapOrList.entries.map((entry) {
         return DropdownMenuItem<String?>(
@@ -87,7 +89,8 @@ class _FilSignalementsScreenState extends State<FilSignalementsScreen> {
                       ),
                       ..._buildDropdownItems(kCategories),
                     ],
-                    onChanged: (val) => setState(() => _selectedCategorie = val),
+                    onChanged: (val) =>
+                        setState(() => _selectedCategorie = val),
                   ),
                 ),
               ],
@@ -119,7 +122,9 @@ class _FilSignalementsScreenState extends State<FilSignalementsScreen> {
                 final signalements = snapshot.data ?? [];
                 if (signalements.isEmpty) {
                   return const Center(
-                    child: Text('Aucun signalement ne correspond à vos critères.'),
+                    child: Text(
+                      'Aucun signalement ne correspond à vos critères.',
+                    ),
                   );
                 }
 
@@ -132,7 +137,8 @@ class _FilSignalementsScreenState extends State<FilSignalementsScreen> {
                     final dateFormatted = item.createdAt != null
                         ? DateFormat('dd/MM/yyyy').format(item.createdAt!)
                         : 'Date inconnue';
-                    final lieuOuDate = (item.commune != null && item.commune!.isNotEmpty)
+                    final lieuOuDate =
+                        (item.commune != null && item.commune!.isNotEmpty)
                         ? item.commune!
                         : 'Signalé le $dateFormatted';
 
@@ -148,7 +154,9 @@ class _FilSignalementsScreenState extends State<FilSignalementsScreen> {
                           libelleCategorie(item.categorie),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text('$lieuOuDate • ${libelleStatut(item.statut)}'),
+                        subtitle: Text(
+                          '$lieuOuDate • ${libelleStatut(item.statut)}',
+                        ),
                         trailing: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,

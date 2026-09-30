@@ -19,20 +19,22 @@ class SignalementService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      var list = snapshot.docs
-          .map((doc) => Signalement.fromFirestore(doc))
-          .toList();
+          var list = snapshot.docs
+              .map((doc) => Signalement.fromFirestore(doc))
+              .toList();
 
-      // Filtrage dynamique en Dart
-      if (statut != null && statut.isNotEmpty && statut != 'tous') {
-        list = list.where((s) => s.statut == statut).toList();
-      }
-      if (categorie != null && categorie.isNotEmpty && categorie != 'toutes') {
-        list = list.where((s) => s.categorie == categorie).toList();
-      }
+          // Filtrage dynamique en Dart
+          if (statut != null && statut.isNotEmpty && statut != 'tous') {
+            list = list.where((s) => s.statut == statut).toList();
+          }
+          if (categorie != null &&
+              categorie.isNotEmpty &&
+              categorie != 'toutes') {
+            list = list.where((s) => s.categorie == categorie).toList();
+          }
 
-      return list;
-    });
+          return list;
+        });
   }
 
   /// Dev 4 : Stream des signalements d'un utilisateur
@@ -42,19 +44,19 @@ class SignalementService {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => Signalement.fromFirestore(doc))
-          .toList();
+          final list = snapshot.docs
+              .map((doc) => Signalement.fromFirestore(doc))
+              .toList();
 
-      // Tri sécurisé en Dart avec vérification du caractère nul de createdAt
-      list.sort((a, b) {
-        if (a.createdAt == null) return 1;
-        if (b.createdAt == null) return -1;
-        return b.createdAt!.compareTo(a.createdAt!);
-      });
+          // Tri sécurisé en Dart avec vérification du caractère nul de createdAt
+          list.sort((a, b) {
+            if (a.createdAt == null) return 1;
+            if (b.createdAt == null) return -1;
+            return b.createdAt!.compareTo(a.createdAt!);
+          });
 
-      return list;
-    });
+          return list;
+        });
   }
 
   /// Dev 4 : changerStatut(id, statut) — réservé à l'admin

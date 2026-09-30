@@ -40,8 +40,9 @@ class DetailSignalementScreen extends StatelessWidget {
 
     // Type changé de 'String?' vers 'String' pour enlever le dernier warning
     final String nomAuteur = signalement.userNom;
-    final String nomAuteurAffiche =
-        nomAuteur.trim().isNotEmpty ? nomAuteur : 'Anonyme';
+    final String nomAuteurAffiche = nomAuteur.trim().isNotEmpty
+        ? nomAuteur
+        : 'Anonyme';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Détail du signalement')),
@@ -109,8 +110,7 @@ class DetailSignalementScreen extends StatelessWidget {
               'Commune : $communeText',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            if (repere != null && repere.isNotEmpty)
-              Text('Repère : $repere'),
+            if (repere != null && repere.isNotEmpty) Text('Repère : $repere'),
             const SizedBox(height: 12),
 
             // Description
