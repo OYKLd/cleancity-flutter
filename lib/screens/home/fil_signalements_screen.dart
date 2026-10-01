@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../models/signalement.dart';
 import '../../services/signalement_service.dart';
 import '../../utils/constants.dart';
+import '../../widgets/signalement_card.dart';
 import '../signalement/detail_signalement_screen.dart';
 
 /// Onglet « Accueil » : fil des signalements en temps réel avec filtres.
@@ -133,62 +133,18 @@ class _FilSignalementsScreenState extends State<FilSignalementsScreen> {
                   itemBuilder: (context, index) {
                     final item = signalements[index];
 
-                    // Gestion sécurisée de la date et de la commune
-                    final dateFormatted = item.createdAt != null
-                        ? DateFormat('dd/MM/yyyy').format(item.createdAt!)
-                        : 'Date inconnue';
-                    final lieuOuDate =
-                        (item.commune != null && item.commune!.isNotEmpty)
-                        ? item.commune!
-                        : 'Signalé le $dateFormatted';
-
-                    final couleur = couleurStatut(item.statut);
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      child: ListTile(
-                        title: Text(
-                          libelleCategorie(item.categorie),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          '$lieuOuDate • ${libelleStatut(item.statut)}',
-                        ),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: couleur.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: couleur,
+                    return SignalementCard(
+                      signalement: item,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetailSignalementScreen(
+                              signalement: item,
                             ),
                           ),
-                          child: Text(
-                            libelleStatut(item.statut),
-                            style: TextStyle(
-                              color: couleur,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DetailSignalementScreen(
-                                signalement: item,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                        );
+                      },
                     );
                   },
                 );

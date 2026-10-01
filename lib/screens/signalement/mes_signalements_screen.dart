@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../services/signalement_service.dart';
 import '../../models/signalement.dart';
 import '../../providers/auth_provider.dart';
-import '../../utils/constants.dart';
+import '../../services/signalement_service.dart';
+import '../../widgets/signalement_card.dart';
 import 'detail_signalement_screen.dart';
 
 class MesSignalementsScreen extends StatelessWidget {
@@ -49,31 +49,18 @@ class MesSignalementsScreen extends StatelessWidget {
             itemCount: mesSignalements.length,
             itemBuilder: (context, index) {
               final item = mesSignalements[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: ListTile(
-                  title: Text(libelleCategorie(item.categorie)),
-                  subtitle: Text(
-                    '${item.commune ?? "Emplacement GPS"} • ${libelleStatut(item.statut)}',
-                  ),
-                  trailing: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: couleurStatut(item.statut),
-                      shape: BoxShape.circle,
+
+              return SignalementCard(
+                signalement: item,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          DetailSignalementScreen(signalement: item),
                     ),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            DetailSignalementScreen(signalement: item),
-                      ),
-                    );
-                  },
-                ),
+                  );
+                },
               );
             },
           );
