@@ -69,8 +69,6 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
           )
           .timeout(kRodiumTimeout);
 
-      // Diagnostic temporaire : affiche le code HTTP et la réponse
-      // uniquement lorsqu'une erreur est renvoyée par Rodium.
       if (response.statusCode < 200 || response.statusCode >= 300) {
         print('RODIUM HTTP ${response.statusCode}');
         print('RODIUM BODY: ${response.body}');
@@ -78,7 +76,6 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
       }
 
       final body = jsonDecode(response.body);
-
       final content = body['choices']?[0]?['message']?['content'];
 
       if (content is! String || content.trim().isEmpty) {
@@ -89,8 +86,6 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
 
       return _parserReponse(content);
     } catch (e) {
-      // Diagnostic temporaire : affiche l'erreur réelle sans jamais
-      // afficher la clé API.
       print('RODIUM EXCEPTION: $e');
       return null;
     }
@@ -99,11 +94,22 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
   Map<String, String>? _parserReponse(String content) {
     var texte = content.trim();
 
-    // Retire les éventuelles balises Markdown ```json ... ```.
-    if (texte.startsWith('```')) {
-      texte = texte.replaceFirst(RegExp(r'^```(?:json)?\s*'), '');
-      texte = texte.replaceFirst(RegExp(r'\s*```$'), '');
-    }
+    texte = texte.replaceFirst(
+      RegExp(r'^```json\s*', caseSensitive: false),
+      '',
+    );
+
+    texte = texte.replaceFirst(
+      RegExp(r'^```\s*'),
+      '',
+    );
+
+    texte = texte.replaceFirst(
+      RegExp(r'\s*```$'),
+      '',
+    );
+
+    texte = texte.trim();
 
     try {
       final json = jsonDecode(texte);
