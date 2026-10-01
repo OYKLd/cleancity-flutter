@@ -28,6 +28,7 @@ class IaService {
             },
             body: jsonEncode({
               'model': kRodiumModele,
+              'max_tokens': 1024,
               'messages': [
                 {
                   'role': 'user',
@@ -68,7 +69,11 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
           )
           .timeout(kRodiumTimeout);
 
+      // Diagnostic temporaire : affiche le code HTTP et la réponse
+      // uniquement lorsqu'une erreur est renvoyée par Rodium.
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        print('RODIUM HTTP ${response.statusCode}');
+        print('RODIUM BODY: ${response.body}');
         return null;
       }
 
@@ -77,11 +82,16 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
       final content = body['choices']?[0]?['message']?['content'];
 
       if (content is! String || content.trim().isEmpty) {
+        print('RODIUM ERREUR : contenu de réponse vide ou invalide.');
+        print('RODIUM BODY: ${response.body}');
         return null;
       }
 
       return _parserReponse(content);
-    } catch (_) {
+    } catch (e) {
+      // Diagnostic temporaire : affiche l'erreur réelle sans jamais
+      // afficher la clé API.
+      print('RODIUM EXCEPTION: $e');
       return null;
     }
   }
@@ -99,6 +109,8 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
       final json = jsonDecode(texte);
 
       if (json is! Map) {
+        print('RODIUM ERREUR : la réponse n\'est pas un objet JSON.');
+        print('RODIUM CONTENT: $content');
         return null;
       }
 
@@ -125,6 +137,8 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
           !categoriesAutorisees.contains(categorie) ||
           !urgencesAutorisees.contains(urgence) ||
           description.trim().isEmpty) {
+        print('RODIUM ERREUR : réponse JSON invalide.');
+        print('RODIUM CONTENT: $content');
         return null;
       }
 
@@ -133,7 +147,10 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
         'urgence': urgence,
         'description': description.trim(),
       };
-    } catch (_) {
+    } catch (e) {
+      print('RODIUM ERREUR : impossible de parser le JSON.');
+      print('RODIUM EXCEPTION: $e');
+      print('RODIUM CONTENT: $content');
       return null;
     }
   }
