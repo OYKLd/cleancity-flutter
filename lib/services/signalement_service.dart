@@ -9,9 +9,7 @@ class SignalementService {
 
   /// Crée un nouveau signalement dans Firestore.
   Future<void> creerSignalement(Signalement signalement) async {
-    await _db
-        .collection(kCollectionSignalements)
-        .add(signalement.toMap());
+    await _db.collection(kCollectionSignalements).add(signalement.toMap());
   }
 
   /// Récupère les signalements récents avec filtres optionnels.
@@ -24,26 +22,24 @@ class SignalementService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      var list = snapshot.docs
-          .map((doc) => Signalement.fromFirestore(doc))
-          .toList();
+          var list = snapshot.docs
+              .map((doc) => Signalement.fromFirestore(doc))
+              .toList();
 
-      // Filtrage du statut en Dart.
-      if (statut != null &&
-          statut.isNotEmpty &&
-          statut != 'tous') {
-        list = list.where((s) => s.statut == statut).toList();
-      }
+          // Filtrage du statut en Dart.
+          if (statut != null && statut.isNotEmpty && statut != 'tous') {
+            list = list.where((s) => s.statut == statut).toList();
+          }
 
-      // Filtrage de la catégorie en Dart.
-      if (categorie != null &&
-          categorie.isNotEmpty &&
-          categorie != 'toutes') {
-        list = list.where((s) => s.categorie == categorie).toList();
-      }
+          // Filtrage de la catégorie en Dart.
+          if (categorie != null &&
+              categorie.isNotEmpty &&
+              categorie != 'toutes') {
+            list = list.where((s) => s.categorie == categorie).toList();
+          }
 
-      return list;
-    });
+          return list;
+        });
   }
 
   /// Récupère les signalements d'un utilisateur.
@@ -53,20 +49,20 @@ class SignalementService {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => Signalement.fromFirestore(doc))
-          .toList();
+          final list = snapshot.docs
+              .map((doc) => Signalement.fromFirestore(doc))
+              .toList();
 
-      // Tri du plus récent au plus ancien.
-      list.sort((a, b) {
-        if (a.createdAt == null) return 1;
-        if (b.createdAt == null) return -1;
+          // Tri du plus récent au plus ancien.
+          list.sort((a, b) {
+            if (a.createdAt == null) return 1;
+            if (b.createdAt == null) return -1;
 
-        return b.createdAt!.compareTo(a.createdAt!);
-      });
+            return b.createdAt!.compareTo(a.createdAt!);
+          });
 
-      return list;
-    });
+          return list;
+        });
   }
 
   /// Change le statut d'un signalement.
@@ -77,10 +73,7 @@ class SignalementService {
     String id,
     String nouveauStatut,
   ) async {
-    await _db
-        .collection(kCollectionSignalements)
-        .doc(id)
-        .update({
+    await _db.collection(kCollectionSignalements).doc(id).update({
       'statut': nouveauStatut,
       'updatedAt': FieldValue.serverTimestamp(),
     });
