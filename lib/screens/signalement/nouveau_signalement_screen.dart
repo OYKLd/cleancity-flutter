@@ -28,17 +28,14 @@ class NouveauSignalementScreen extends StatefulWidget {
       _NouveauSignalementScreenState();
 }
 
-class _NouveauSignalementScreenState
-    extends State<NouveauSignalementScreen> {
+class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
   final ImageService _imageService = ImageService();
   final LocationService _locationService = LocationService();
   final SignalementService _signalementService = SignalementService();
 
-  final TextEditingController _descriptionController =
-      TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
-  final TextEditingController _repereController =
-      TextEditingController();
+  final TextEditingController _repereController = TextEditingController();
 
   String? _photoBase64;
   String? _categorieChoisie;
@@ -160,8 +157,7 @@ class _NouveauSignalementScreenState
         latitude: _position?.latitude,
         longitude: _position?.longitude,
         commune: _saisieManuelle ? _communeChoisie : null,
-        repere: _saisieManuelle &&
-                _repereController.text.trim().isNotEmpty
+        repere: _saisieManuelle && _repereController.text.trim().isNotEmpty
             ? _repereController.text.trim()
             : null,
       );
@@ -274,8 +270,7 @@ class _NouveauSignalementScreenState
               enabled: !_envoiEnCours,
               decoration: const InputDecoration(
                 labelText: 'Description',
-                hintText:
-                    "Ex. : tas d'ordures depuis plusieurs jours...",
+                hintText: "Ex. : tas d'ordures depuis plusieurs jours...",
                 alignLabelWithHint: true,
               ),
             ),
@@ -289,8 +284,7 @@ class _NouveauSignalementScreenState
 
             // Bouton d'envoi.
             FilledButton.icon(
-              onPressed:
-                  _envoiEnCours ? null : _envoyerSignalement,
+              onPressed: _envoiEnCours ? null : _envoyerSignalement,
               icon: _envoiEnCours
                   ? const SizedBox(
                       width: 18,
@@ -302,9 +296,7 @@ class _NouveauSignalementScreenState
                     )
                   : const Icon(Icons.send),
               label: Text(
-                _envoiEnCours
-                    ? 'Envoi en cours...'
-                    : 'Envoyer le signalement',
+                _envoiEnCours ? 'Envoi en cours...' : 'Envoyer le signalement',
               ),
             ),
           ],
@@ -315,8 +307,7 @@ class _NouveauSignalementScreenState
 
   /// Bloc permettant d'ajouter une photo.
   Widget _blocPhoto(BuildContext context) {
-    final couleurFond =
-        Theme.of(context).colorScheme.surfaceContainerHighest;
+    final couleurFond = Theme.of(context).colorScheme.surfaceContainerHighest;
 
     return Column(
       children: [
@@ -328,19 +319,19 @@ class _NouveauSignalementScreenState
               height: 220,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (
-                context,
-                error,
-                stackTrace,
-              ) =>
-                  Container(
-                height: 220,
-                alignment: Alignment.center,
-                color: couleurFond,
-                child: const Text(
-                  'Impossible d\'afficher la photo',
-                ),
-              ),
+              errorBuilder:
+                  (
+                    context,
+                    error,
+                    stackTrace,
+                  ) => Container(
+                    height: 220,
+                    alignment: Alignment.center,
+                    color: couleurFond,
+                    child: const Text(
+                      'Impossible d\'afficher la photo',
+                    ),
+                  ),
             ),
           )
         else
@@ -358,9 +349,7 @@ class _NouveauSignalementScreenState
                 Icon(
                   Icons.add_a_photo_outlined,
                   size: 48,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -380,8 +369,8 @@ class _NouveauSignalementScreenState
                 onPressed: _envoiEnCours
                     ? null
                     : () => _choisirPhoto(
-                          ImageSource.camera,
-                        ),
+                        ImageSource.camera,
+                      ),
                 icon: const Icon(
                   Icons.camera_alt_outlined,
                 ),
@@ -397,8 +386,8 @@ class _NouveauSignalementScreenState
                 onPressed: _envoiEnCours
                     ? null
                     : () => _choisirPhoto(
-                          ImageSource.gallery,
-                        ),
+                        ImageSource.gallery,
+                      ),
                 icon: const Icon(
                   Icons.photo_library_outlined,
                 ),
@@ -428,9 +417,7 @@ class _NouveauSignalementScreenState
             children: [
               Icon(
                 Icons.location_on_outlined,
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 8),
               const Text(
@@ -475,11 +462,9 @@ class _NouveauSignalementScreenState
           ] else ...[
             // GPS.
             OutlinedButton.icon(
-              onPressed:
-                  (_envoiEnCours ||
-                          _recherchePositionEnCours)
-                      ? null
-                      : _recupererPosition,
+              onPressed: (_envoiEnCours || _recherchePositionEnCours)
+                  ? null
+                  : _recupererPosition,
               icon: _recherchePositionEnCours
                   ? const SizedBox(
                       width: 16,
@@ -530,10 +515,11 @@ class _NouveauSignalementScreenState
             TextField(
               controller: _repereController,
               enabled: !_envoiEnCours,
+              // Les règles Firestore refusent un repère de plus de 200 caractères.
+              maxLength: 100,
               decoration: const InputDecoration(
                 labelText: 'Repère (optionnel)',
-                hintText:
-                    'Ex. : près du marché, en face de la pharmacie...',
+                hintText: 'Ex. : près du marché, en face de la pharmacie...',
               ),
               onChanged: (_) {
                 setState(() {
