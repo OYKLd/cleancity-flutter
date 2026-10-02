@@ -1,0 +1,123 @@
+rules_version = '2';
+
+// Règles de sécurité Firestore de CleanCity (voir CLAUDE.md, section 8).
+// Principe : tout est refusé par défaut, on n'autorise que ce qui est listé.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------
+    // Fonctions utilitaires
+    // ------------------------------------------------------------------
+
+    function estConnecte() {
+      return request.auth != null;
+    }
+
+    function estProprietaire(uid) {
+      return estConnecte() && request.auth.uid == uid;
+    }
+
+    // Le rôle est lu dans users/{uid} : seul un admin attribué à la main
+    // dans la console Firebase a le champ role = "admin".
+    function estAdmin() {
+      return estConnecte()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function categorieValide(valeur) {
+      return valeur in ['ordures', 'caniveau', 'eau_stagnante', 'autre'];
+    }
+
+    function urgenceValide(valeur) {
+      return valeur in ['faible', 'moyenne', 'elevee'];
+    }
+
+    function statutValide(valeur) {
+      return valeur in ['en_attente', 'en_cours', 'resolu'];
+    }
+
+    // Champ facultatif : absent, null, ou du bon type.
+    function nombreOuNull(donnees, champ) {
+      return !(champ in donnees) || donnees[champ] == null || donnees[champ] is number;
+    }
+
+    function texteOuNull(donnees, champ, tailleMax) {
+      return !(champ in donnees) || donnees[champ] == null
+        || (donnees[champ] is string && donnees[champ].size() <= tailleMax);
+    }
+
+    // ------------------------------------------------------------------
+    // users/{uid}
+    // ------------------------------------------------------------------
+    match /users/{uid} {
+      // Chacun lit uniquement son propre profil (le nom de l'auteur est
+      // recopié dans chaque signalement, donc pas besoin de lire les autres).
+      allow read: if estProprietaire(uid);
+
+      // Création à l'inscription : son propre document, toujours "citoyen".
+      // Impossible de s'inscrire directement en admin.
+      allow create: if estProprietaire(uid)
+        && request.resource.data.keys().hasOnly(['nom', 'email', 'role', 'createdAt'])
+        && request.resource.data.nom is string
+        && request.resource.data.nom.size() > 0
+        && request.resource.data.nom.size() <= 100
+        && request.resource.data.email is string
+        && request.resource.data.role == 'citoyen';
+
+      // Modification : uniquement son nom (le rôle et l'email ne bougent pas).
+      allow update: if estProprietaire(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nom'])
+        && request.resource.data.nom is string
+        && request.resource.data.nom.size() > 0
+        && request.resource.data.nom.size() <= 100;
+
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // signalements/{id}
+    // ------------------------------------------------------------------
+    match /signalements/{id} {
+      // Tous les utilisateurs connectés voient tous les signalements.
+      allow read: if estConnecte();
+
+      // Création : avec son propre userId, au statut "en_attente",
+      // et une photo obligatoire de moins de 900 000 caractères.
+      allow create: if estConnecte()
+        && request.resource.data.keys().hasAll([
+             'userId', 'userNom', 'description', 'photoBase64',
+             'categorie', 'urgence', 'statut', 'analyseIA'])
+        && request.resource.data.keys().hasOnly([
+             'userId', 'userNom', 'description', 'photoBase64',
+             'categorie', 'urgence', 'statut',
+             'latitude', 'longitude', 'commune', 'repere',
+             'analyseIA', 'createdAt', 'updatedAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.statut == 'en_attente'
+        && request.resource.data.photoBase64 is string
+        && request.resource.data.photoBase64.size() > 0
+        && request.resource.data.photoBase64.size() < 900000
+        && categorieValide(request.resource.data.categorie)
+        && urgenceValide(request.resource.data.urgence)
+        && request.resource.data.userNom is string
+        && request.resource.data.userNom.size() <= 100
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 1000
+        && request.resource.data.analyseIA is bool
+        && nombreOuNull(request.resource.data, 'latitude')
+        && nombreOuNull(request.resource.data, 'longitude')
+        && texteOuNull(request.resource.data, 'commune', 50)
+        && texteOuNull(request.resource.data, 'repere', 200);
+
+      // Modification : réservée à l'admin, et seulement le statut
+      // (plus la date de mise à jour).
+      allow update: if estAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut', 'updatedAt'])
+        && statutValide(request.resource.data.statut);
+
+      // Suppression : réservée à l'admin (nettoyage des données de test).
+      allow delete: if estAdmin();
+    }
+  }
+}

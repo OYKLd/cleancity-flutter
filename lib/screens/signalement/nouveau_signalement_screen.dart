@@ -12,8 +12,14 @@ import '../../services/location_service.dart';
 import '../../services/signalement_service.dart';
 import '../../utils/constants.dart';
 
-/// Création d'un signalement : photo, catégorie, urgence, description,
-/// localisation (GPS ou commune + repère en secours).
+/// Écran de création d'un signalement.
+///
+/// Permet à l'utilisateur d'ajouter :
+/// - une photo ;
+/// - une catégorie ;
+/// - un niveau d'urgence ;
+/// - une description ;
+/// - une localisation GPS ou manuelle.
 class NouveauSignalementScreen extends StatefulWidget {
   const NouveauSignalementScreen({super.key});
 
@@ -22,19 +28,25 @@ class NouveauSignalementScreen extends StatefulWidget {
       _NouveauSignalementScreenState();
 }
 
-class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
+class _NouveauSignalementScreenState
+    extends State<NouveauSignalementScreen> {
   final ImageService _imageService = ImageService();
   final LocationService _locationService = LocationService();
   final SignalementService _signalementService = SignalementService();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _repereController = TextEditingController();
+
+  final TextEditingController _descriptionController =
+      TextEditingController();
+
+  final TextEditingController _repereController =
+      TextEditingController();
 
   String? _photoBase64;
   String? _categorieChoisie;
   String? _urgenceChoisie;
+
   bool _envoiEnCours = false;
 
-  // Localisation : soit une position GPS, soit une saisie manuelle.
+  // Localisation.
   Position? _position;
   bool _recherchePositionEnCours = false;
   bool _saisieManuelle = false;
@@ -47,22 +59,38 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
     super.dispose();
   }
 
+  /// Sélectionne une photo depuis la caméra ou la galerie.
   Future<void> _choisirPhoto(ImageSource source) async {
     try {
       final base64 = await _imageService.choisirPhoto(source);
-      if (base64 == null) return; // L'utilisateur a annulé.
-      setState(() => _photoBase64 = base64);
+
+      if (base64 == null) {
+        return;
+      }
+
+      setState(() {
+        _photoBase64 = base64;
+      });
     } catch (e) {
       _afficherErreur(e.toString());
     }
   }
 
+  /// Récupère la position GPS de l'utilisateur.
   Future<void> _recupererPosition() async {
-    setState(() => _recherchePositionEnCours = true);
+    setState(() {
+      _recherchePositionEnCours = true;
+    });
+
     final position = await _locationService.obtenirPosition();
-    if (!mounted) return;
+
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
       _recherchePositionEnCours = false;
+
       if (position != null) {
         _position = position;
         _saisieManuelle = false;
@@ -71,47 +99,60 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
         _saisieManuelle = true;
       }
     });
+
     if (position == null) {
       _afficherErreur(
-        "Position indisponible. Indique ta commune et un repère.",
+        'Position indisponible. Indique ta commune et un repère.',
       );
     }
   }
 
+  /// Valide et envoie le signalement dans Firestore.
   Future<void> _envoyerSignalement() async {
+    // Vérification de la photo.
     if (_photoBase64 == null) {
       _afficherErreur('Ajoutez une photo du problème.');
       return;
     }
+
+    // Vérification de la catégorie.
     if (_categorieChoisie == null) {
       _afficherErreur('Choisissez une catégorie.');
       return;
     }
+
+    // Vérification de l'urgence.
     if (_urgenceChoisie == null) {
       _afficherErreur("Choisissez un niveau d'urgence.");
       return;
     }
+
+    // Vérification de la description.
     final description = _descriptionController.text.trim();
+
     if (description.isEmpty) {
       _afficherErreur('Décrivez brièvement le problème.');
       return;
     }
 
+    // Vérification de l'utilisateur connecté.
     final utilisateur = context.read<AuthProvider>().user;
+
     if (utilisateur == null) {
-      _afficherErreur('Vous devez être connecté pour signaler un problème.');
+      _afficherErreur(
+        'Vous devez être connecté pour signaler un problème.',
+      );
       return;
     }
 
-    setState(() => _envoiEnCours = true);
+    setState(() {
+      _envoiEnCours = true;
+    });
+
     try {
       final signalement = Signalement(
         userId: utilisateur.uid,
-        // En attendant que Dev 2 ajoute le profil complet (nom) à
-        // AuthProvider, on utilise le nom Firebase ou, à défaut, l'email.
-        userNom: (utilisateur.displayName?.trim().isNotEmpty ?? false)
-            ? utilisateur.displayName!.trim()
-            : (utilisateur.email?.split('@').first ?? 'Utilisateur'),
+        userNom: context.read<AuthProvider>().displayName,
         description: description,
         photoBase64: _photoBase64!,
         categorie: _categorieChoisie!,
@@ -119,33 +160,54 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
         latitude: _position?.latitude,
         longitude: _position?.longitude,
         commune: _saisieManuelle ? _communeChoisie : null,
-        repere: _saisieManuelle && _repereController.text.trim().isNotEmpty
+        repere: _saisieManuelle &&
+                _repereController.text.trim().isNotEmpty
             ? _repereController.text.trim()
             : null,
       );
+
       await _signalementService.creerSignalement(signalement);
-      if (!mounted) return;
+
+      if (!mounted) {
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Signalement envoyé, merci !')),
+        const SnackBar(
+          content: Text('Signalement envoyé, merci !'),
+        ),
       );
+
       Navigator.pop(context);
     } catch (e) {
-      _afficherErreur("Erreur lors de l'envoi : $e");
+      _afficherErreur(
+        'Impossible d\'envoyer le signalement. '
+        'Vérifiez votre connexion et réessayez.',
+      );
     } finally {
-      if (mounted) setState(() => _envoiEnCours = false);
+      if (mounted) {
+        setState(() {
+          _envoiEnCours = false;
+        });
+      }
     }
   }
 
+  /// Affiche un message d'erreur.
   void _afficherErreur(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nouveau signalement')),
+      appBar: AppBar(
+        title: const Text('Nouveau signalement'),
+      ),
       body: AbsorbPointer(
         absorbing: _envoiEnCours,
         child: ListView(
@@ -153,34 +215,58 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
           children: [
             _blocPhoto(context),
             const SizedBox(height: 24),
+
+            // Catégorie.
             DropdownButtonFormField<String>(
               initialValue: _categorieChoisie,
-              decoration: const InputDecoration(labelText: 'Catégorie'),
+              decoration: const InputDecoration(
+                labelText: 'Catégorie',
+              ),
               items: kCategories.entries
                   .map(
-                    (e) =>
-                        DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    (e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value),
+                    ),
                   )
                   .toList(),
               onChanged: _envoiEnCours
                   ? null
-                  : (valeur) => setState(() => _categorieChoisie = valeur),
+                  : (valeur) {
+                      setState(() {
+                        _categorieChoisie = valeur;
+                      });
+                    },
             ),
+
             const SizedBox(height: 16),
+
+            // Urgence.
             DropdownButtonFormField<String>(
               initialValue: _urgenceChoisie,
-              decoration: const InputDecoration(labelText: 'Urgence'),
+              decoration: const InputDecoration(
+                labelText: 'Urgence',
+              ),
               items: kUrgences.entries
                   .map(
-                    (e) =>
-                        DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    (e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value),
+                    ),
                   )
                   .toList(),
               onChanged: _envoiEnCours
                   ? null
-                  : (valeur) => setState(() => _urgenceChoisie = valeur),
+                  : (valeur) {
+                      setState(() {
+                        _urgenceChoisie = valeur;
+                      });
+                    },
             ),
+
             const SizedBox(height: 16),
+
+            // Description.
             TextField(
               controller: _descriptionController,
               maxLines: 3,
@@ -188,15 +274,23 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
               enabled: !_envoiEnCours,
               decoration: const InputDecoration(
                 labelText: 'Description',
-                hintText: "Ex. : tas d'ordures depuis plusieurs jours...",
+                hintText:
+                    "Ex. : tas d'ordures depuis plusieurs jours...",
                 alignLabelWithHint: true,
               ),
             ),
+
             const SizedBox(height: 8),
+
+            // Localisation.
             _blocLocalisation(context),
+
             const SizedBox(height: 8),
+
+            // Bouton d'envoi.
             FilledButton.icon(
-              onPressed: _envoiEnCours ? null : _envoyerSignalement,
+              onPressed:
+                  _envoiEnCours ? null : _envoyerSignalement,
               icon: _envoiEnCours
                   ? const SizedBox(
                       width: 18,
@@ -208,7 +302,9 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
                     )
                   : const Icon(Icons.send),
               label: Text(
-                _envoiEnCours ? 'Envoi en cours...' : 'Envoyer le signalement',
+                _envoiEnCours
+                    ? 'Envoi en cours...'
+                    : 'Envoyer le signalement',
               ),
             ),
           ],
@@ -217,8 +313,11 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
     );
   }
 
+  /// Bloc permettant d'ajouter une photo.
   Widget _blocPhoto(BuildContext context) {
-    final couleurFond = Theme.of(context).colorScheme.surfaceContainerHighest;
+    final couleurFond =
+        Theme.of(context).colorScheme.surfaceContainerHighest;
+
     return Column(
       children: [
         if (_photoBase64 != null)
@@ -229,11 +328,18 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
               height: 220,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
+              errorBuilder: (
+                context,
+                error,
+                stackTrace,
+              ) =>
+                  Container(
                 height: 220,
                 alignment: Alignment.center,
                 color: couleurFond,
-                child: const Text("Impossible d'afficher la photo"),
+                child: const Text(
+                  'Impossible d\'afficher la photo',
+                ),
               ),
             ),
           )
@@ -252,32 +358,50 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
                 Icon(
                   Icons.add_a_photo_outlined,
                   size: 48,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary,
                 ),
                 const SizedBox(height: 8),
-                const Text('Ajoutez une photo du problème'),
+                const Text(
+                  'Ajoutez une photo du problème',
+                ),
               ],
             ),
           ),
+
         const SizedBox(height: 12),
+
         Row(
           children: [
+            // Caméra.
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _envoiEnCours
                     ? null
-                    : () => _choisirPhoto(ImageSource.camera),
-                icon: const Icon(Icons.camera_alt_outlined),
+                    : () => _choisirPhoto(
+                          ImageSource.camera,
+                        ),
+                icon: const Icon(
+                  Icons.camera_alt_outlined,
+                ),
                 label: const Text('Caméra'),
               ),
             ),
+
             const SizedBox(width: 12),
+
+            // Galerie.
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _envoiEnCours
                     ? null
-                    : () => _choisirPhoto(ImageSource.gallery),
-                icon: const Icon(Icons.photo_library_outlined),
+                    : () => _choisirPhoto(
+                          ImageSource.gallery,
+                        ),
+                icon: const Icon(
+                  Icons.photo_library_outlined,
+                ),
                 label: const Text('Galerie'),
               ),
             ),
@@ -287,11 +411,14 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
     );
   }
 
+  /// Bloc de gestion de la localisation.
   Widget _blocLocalisation(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).dividerColor),
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -301,16 +428,22 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
             children: [
               Icon(
                 Icons.location_on_outlined,
-                color: Theme.of(context).colorScheme.primary,
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary,
               ),
               const SizedBox(width: 8),
               const Text(
                 'Localisation (facultative)',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
+
           const SizedBox(height: 12),
+
           if (_position != null && !_saisieManuelle) ...[
             Row(
               children: [
@@ -320,56 +453,93 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                const Expanded(child: Text('Position GPS récupérée')),
+                const Expanded(
+                  child: Text(
+                    'Position GPS récupérée',
+                  ),
+                ),
                 TextButton(
                   onPressed: _envoiEnCours
                       ? null
-                      : () => setState(() => _saisieManuelle = true),
-                  child: const Text('Saisir manuellement'),
+                      : () {
+                          setState(() {
+                            _saisieManuelle = true;
+                          });
+                        },
+                  child: const Text(
+                    'Saisir manuellement',
+                  ),
                 ),
               ],
             ),
           ] else ...[
+            // GPS.
             OutlinedButton.icon(
-              onPressed: (_envoiEnCours || _recherchePositionEnCours)
-                  ? null
-                  : _recupererPosition,
+              onPressed:
+                  (_envoiEnCours ||
+                          _recherchePositionEnCours)
+                      ? null
+                      : _recupererPosition,
               icon: _recherchePositionEnCours
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
                     )
-                  : const Icon(Icons.my_location),
+                  : const Icon(
+                      Icons.my_location,
+                    ),
               label: Text(
                 _recherchePositionEnCours
                     ? 'Recherche en cours...'
                     : 'Utiliser ma position GPS',
               ),
             ),
+
             const SizedBox(height: 12),
+
+            // Commune.
             DropdownButtonFormField<String>(
               initialValue: _communeChoisie,
-              decoration: const InputDecoration(labelText: 'Commune'),
+              decoration: const InputDecoration(
+                labelText: 'Commune',
+              ),
               items: kCommunes
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .map(
+                    (c) => DropdownMenuItem(
+                      value: c,
+                      child: Text(c),
+                    ),
+                  )
                   .toList(),
               onChanged: _envoiEnCours
                   ? null
-                  : (valeur) => setState(() {
-                      _communeChoisie = valeur;
-                      _saisieManuelle = true;
-                    }),
+                  : (valeur) {
+                      setState(() {
+                        _communeChoisie = valeur;
+                        _saisieManuelle = true;
+                      });
+                    },
             ),
+
             const SizedBox(height: 12),
+
+            // Repère.
             TextField(
               controller: _repereController,
               enabled: !_envoiEnCours,
               decoration: const InputDecoration(
                 labelText: 'Repère (optionnel)',
-                hintText: 'Ex. : près du marché, en face de la pharmacie...',
+                hintText:
+                    'Ex. : près du marché, en face de la pharmacie...',
               ),
-              onChanged: (_) => setState(() => _saisieManuelle = true),
+              onChanged: (_) {
+                setState(() {
+                  _saisieManuelle = true;
+                });
+              },
             ),
           ],
         ],
