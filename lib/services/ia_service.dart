@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../utils/constants.dart';
@@ -19,6 +20,7 @@ class IaService {
     }
 
     try {
+      debugPrint('MODELE ENVOYÉ À RODIUM : $kRodiumModele');
       final response = await http
           .post(
             Uri.parse('$kRodiumBaseUrl/chat/completions'),
@@ -70,8 +72,8 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
           .timeout(kRodiumTimeout);
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        print('RODIUM HTTP ${response.statusCode}');
-        print('RODIUM BODY: ${response.body}');
+        debugPrint('RODIUM HTTP ${response.statusCode}');
+        debugPrint('RODIUM BODY: ${response.body}');
         return null;
       }
 
@@ -79,14 +81,14 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
       final content = body['choices']?[0]?['message']?['content'];
 
       if (content is! String || content.trim().isEmpty) {
-        print('RODIUM ERREUR : contenu de réponse vide ou invalide.');
-        print('RODIUM BODY: ${response.body}');
+        debugPrint('RODIUM ERREUR : contenu de réponse vide ou invalide.');
+        debugPrint('RODIUM BODY: ${response.body}');
         return null;
       }
 
       return _parserReponse(content);
     } catch (e) {
-      print('RODIUM EXCEPTION: $e');
+      debugPrint('RODIUM EXCEPTION: $e');
       return null;
     }
   }
@@ -115,8 +117,8 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
       final json = jsonDecode(texte);
 
       if (json is! Map) {
-        print('RODIUM ERREUR : la réponse n\'est pas un objet JSON.');
-        print('RODIUM CONTENT: $content');
+        debugPrint('RODIUM ERREUR : la réponse n\'est pas un objet JSON.');
+        debugPrint('RODIUM CONTENT: $content');
         return null;
       }
 
@@ -143,8 +145,8 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
           !categoriesAutorisees.contains(categorie) ||
           !urgencesAutorisees.contains(urgence) ||
           description.trim().isEmpty) {
-        print('RODIUM ERREUR : réponse JSON invalide.');
-        print('RODIUM CONTENT: $content');
+        debugPrint('RODIUM ERREUR : réponse JSON invalide.');
+        debugPrint('RODIUM CONTENT: $content');
         return null;
       }
 
@@ -154,9 +156,9 @@ Si aucun problème urbain identifiable n'est visible, utilise "autre".
         'description': description.trim(),
       };
     } catch (e) {
-      print('RODIUM ERREUR : impossible de parser le JSON.');
-      print('RODIUM EXCEPTION: $e');
-      print('RODIUM CONTENT: $content');
+      debugPrint('RODIUM ERREUR : impossible de parser le JSON.');
+      debugPrint('RODIUM EXCEPTION: $e');
+      debugPrint('RODIUM CONTENT: $content');
       return null;
     }
   }
