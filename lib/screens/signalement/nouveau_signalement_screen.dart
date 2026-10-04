@@ -7,19 +7,13 @@ import 'package:provider/provider.dart';
 
 import '../../models/signalement.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/ia_service.dart';
 import '../../services/image_service.dart';
 import '../../services/location_service.dart';
 import '../../services/signalement_service.dart';
 import '../../utils/constants.dart';
 
 /// Écran de création d'un signalement.
-///
-/// Permet à l'utilisateur d'ajouter :
-/// - une photo ;
-/// - une catégorie ;
-/// - un niveau d'urgence ;
-/// - une description ;
-/// - une localisation GPS ou manuelle.
 class NouveauSignalementScreen extends StatefulWidget {
   const NouveauSignalementScreen({super.key});
 
@@ -32,15 +26,17 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
   final ImageService _imageService = ImageService();
   final LocationService _locationService = LocationService();
   final SignalementService _signalementService = SignalementService();
+  final IaService _iaService = IaService();
 
   final TextEditingController _descriptionController = TextEditingController();
-
   final TextEditingController _repereController = TextEditingController();
 
   String? _photoBase64;
   String? _categorieChoisie;
   String? _urgenceChoisie;
 
+  bool _analyseIA = false;
+  bool _analyseEnCours = false;
   bool _envoiEnCours = false;
 
   // Localisation.
@@ -56,7 +52,7 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
     super.dispose();
   }
 
-  /// Sélectionne une photo depuis la caméra ou la galerie.
+  /// Sélectionne une photo et lance l'analyse Rodium AI.
   Future<void> _choisirPhoto(ImageSource source) async {
     try {
       final base64 = await _imageService.choisirPhoto(source);
@@ -67,8 +63,35 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
 
       setState(() {
         _photoBase64 = base64;
+        _analyseEnCours = true;
       });
+
+      // Appel à l'IA Rodium
+      final result = await _iaService.analyserPhoto(base64);
+
+      if (!mounted) return;
+
+      setState(() {
+        _analyseEnCours = false;
+        if (result != null) {
+          _categorieChoisie = result['categorie'];
+          _urgenceChoisie = result['urgence'];
+          _descriptionController.text = result['description'] ?? '';
+          _analyseIA = true;
+        } else {
+          _analyseIA = false;
+        }
+      });
+
+      if (result == null) {
+        _afficherErreur('Analyse indisponible, remplissez les champs.');
+      }
     } catch (e) {
+      if (mounted) {
+        setState(() {
+          _analyseEnCours = false;
+        });
+      }
       _afficherErreur(e.toString());
     }
   }
@@ -160,6 +183,7 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
         repere: _saisieManuelle && _repereController.text.trim().isNotEmpty
             ? _repereController.text.trim()
             : null,
+        analyseIA: _analyseIA,
       );
 
       await _signalementService.creerSignalement(signalement);
@@ -189,7 +213,7 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
     }
   }
 
-  /// Affiche un message d'erreur.
+  /// Affiche un message d'erreur ou d'information.
   void _afficherErreur(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -205,15 +229,16 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
         title: const Text('Nouveau signalement'),
       ),
       body: AbsorbPointer(
-        absorbing: _envoiEnCours,
+        absorbing: _envoiEnCours || _analyseEnCours,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             _blocPhoto(context),
             const SizedBox(height: 24),
 
-            // Catégorie.
+            // Catégorie (Key dynamique pour contourner le piège de l'initialValue)
             DropdownButtonFormField<String>(
+              key: ValueKey('categorie-$_categorieChoisie'),
               initialValue: _categorieChoisie,
               decoration: const InputDecoration(
                 labelText: 'Catégorie',
@@ -237,8 +262,9 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
 
             const SizedBox(height: 16),
 
-            // Urgence.
+            // Urgence (Key dynamique pour contourner le piège de l'initialValue)
             DropdownButtonFormField<String>(
+              key: ValueKey('urgence-$_urgenceChoisie'),
               initialValue: _urgenceChoisie,
               decoration: const InputDecoration(
                 labelText: 'Urgence',
@@ -284,7 +310,9 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
 
             // Bouton d'envoi.
             FilledButton.icon(
-              onPressed: _envoiEnCours ? null : _envoyerSignalement,
+              onPressed: (_envoiEnCours || _analyseEnCours)
+                  ? null
+                  : _envoyerSignalement,
               icon: _envoiEnCours
                   ? const SizedBox(
                       width: 18,
@@ -305,26 +333,24 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
     );
   }
 
-  /// Bloc permettant d'ajouter une photo.
+  /// Bloc permettant d'ajouter une photo et d'afficher le statut d'analyse.
   Widget _blocPhoto(BuildContext context) {
     final couleurFond = Theme.of(context).colorScheme.surfaceContainerHighest;
 
     return Column(
       children: [
         if (_photoBase64 != null)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.memory(
-              base64Decode(_photoBase64!),
-              height: 220,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder:
-                  (
-                    context,
-                    error,
-                    stackTrace,
-                  ) => Container(
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(
+                  base64Decode(_photoBase64!),
+                  height: 220,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
                     height: 220,
                     alignment: Alignment.center,
                     color: couleurFond,
@@ -332,7 +358,32 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
                       'Impossible d\'afficher la photo',
                     ),
                   ),
-            ),
+                ),
+              ),
+              if (_analyseEnCours)
+                Container(
+                  height: 220,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      CircularProgressIndicator(color: Colors.white),
+                      SizedBox(height: 12),
+                      Text(
+                        'Analyse en cours…',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           )
         else
           Container(
@@ -366,14 +417,10 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
             // Caméra.
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: _envoiEnCours
+                onPressed: (_envoiEnCours || _analyseEnCours)
                     ? null
-                    : () => _choisirPhoto(
-                        ImageSource.camera,
-                      ),
-                icon: const Icon(
-                  Icons.camera_alt_outlined,
-                ),
+                    : () => _choisirPhoto(ImageSource.camera),
+                icon: const Icon(Icons.camera_alt_outlined),
                 label: const Text('Caméra'),
               ),
             ),
@@ -383,14 +430,10 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
             // Galerie.
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: _envoiEnCours
+                onPressed: (_envoiEnCours || _analyseEnCours)
                     ? null
-                    : () => _choisirPhoto(
-                        ImageSource.gallery,
-                      ),
-                icon: const Icon(
-                  Icons.photo_library_outlined,
-                ),
+                    : () => _choisirPhoto(ImageSource.gallery),
+                icon: const Icon(Icons.photo_library_outlined),
                 label: const Text('Galerie'),
               ),
             ),
@@ -515,7 +558,6 @@ class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
             TextField(
               controller: _repereController,
               enabled: !_envoiEnCours,
-              // Les règles Firestore refusent un repère de plus de 200 caractères.
               maxLength: 100,
               decoration: const InputDecoration(
                 labelText: 'Repère (optionnel)',

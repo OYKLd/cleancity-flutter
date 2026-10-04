@@ -104,8 +104,7 @@ const String kRodiumBaseUrl = 'https://api.rodiumai.io/v1';
 
 // Modèle "vision" utilisé pour l'analyse. À confirmer par Dev 5 (feature/ia)
 // avec GET /v1/models avant d'écrire ia_service.dart.
-const String kRodiumModele = 'gpt-4o-mini';
-
+const kRodiumModele = 'google/gemini-2.5-flash-lite';
 const Duration kRodiumTimeout = Duration(seconds: 20);
 
 // La clé n'est JAMAIS écrite dans le code : elle est injectée au build avec
