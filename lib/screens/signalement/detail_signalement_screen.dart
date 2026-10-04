@@ -144,22 +144,29 @@ class DetailSignalementScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
+              // Les boutons du thème ont une largeur minimale infinie :
+              // dans une Row, chacun doit être dans un Expanded pour
+              // se partager la largeur (sinon la page reste blanche).
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  ElevatedButton(
-                    onPressed: () => _changerStatut(context, 'en_cours'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _changerStatut(context, 'en_cours'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                      ),
+                      child: const Text('En cours'),
                     ),
-                    child: const Text('En cours'),
                   ),
-                  ElevatedButton(
-                    onPressed: () => _changerStatut(context, 'resolu'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _changerStatut(context, 'resolu'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
+                      child: const Text('Résolu'),
                     ),
-                    child: const Text('Résolu'),
                   ),
                 ],
               ),
