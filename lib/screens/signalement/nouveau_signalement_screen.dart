@@ -1,13 +1,25 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 
-import '../../services/ia_service.dart';
-import '../../widgets/ia_result_widgets.dart';
+import '../../models/signalement.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/image_service.dart';
+import '../../services/location_service.dart';
+import '../../services/signalement_service.dart';
+import '../../utils/constants.dart';
 
-/// Création d'un signalement avec analyse automatique par Rodium AI.
+/// Écran de création d'un signalement.
+///
+/// Permet à l'utilisateur d'ajouter :
+/// - une photo ;
+/// - une catégorie ;
+/// - un niveau d'urgence ;
+/// - une description ;
+/// - une localisation GPS ou manuelle.
 class NouveauSignalementScreen extends StatefulWidget {
   const NouveauSignalementScreen({super.key});
 
@@ -17,307 +29,506 @@ class NouveauSignalementScreen extends StatefulWidget {
 }
 
 class _NouveauSignalementScreenState extends State<NouveauSignalementScreen> {
-  final ImagePicker _picker = ImagePicker();
-  final IaService _iaService = IaService();
+  final ImageService _imageService = ImageService();
+  final LocationService _locationService = LocationService();
+  final SignalementService _signalementService = SignalementService();
 
-  File? _photo;
+  final TextEditingController _descriptionController = TextEditingController();
 
-  bool _isLoading = false;
-  String? _erreur;
+  final TextEditingController _repereController = TextEditingController();
 
-  String? _categorie;
-  String? _urgence;
-  String? _description;
+  String? _photoBase64;
+  String? _categorieChoisie;
+  String? _urgenceChoisie;
 
-  /// Sélectionne une photo depuis la galerie.
-  Future<void> _choisirPhoto() async {
+  bool _envoiEnCours = false;
+
+  // Localisation.
+  Position? _position;
+  bool _recherchePositionEnCours = false;
+  bool _saisieManuelle = false;
+  String? _communeChoisie;
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    _repereController.dispose();
+    super.dispose();
+  }
+
+  /// Sélectionne une photo depuis la caméra ou la galerie.
+  Future<void> _choisirPhoto(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
+      final base64 = await _imageService.choisirPhoto(source);
 
-      if (image == null) {
+      if (base64 == null) {
         return;
       }
 
       setState(() {
-        _photo = File(image.path);
-        _erreur = null;
-        _categorie = null;
-        _urgence = null;
-        _description = null;
+        _photoBase64 = base64;
       });
-
-      await _analyser();
     } catch (e) {
-      setState(() {
-        _erreur = 'Impossible de sélectionner la photo.';
-      });
+      _afficherErreur(e.toString());
     }
   }
 
-  /// Analyse la photo avec Rodium AI.
-  Future<void> _analyser() async {
-    if (_photo == null) {
+  /// Récupère la position GPS de l'utilisateur.
+  Future<void> _recupererPosition() async {
+    setState(() {
+      _recherchePositionEnCours = true;
+    });
+
+    final position = await _locationService.obtenirPosition();
+
+    if (!mounted) {
       return;
     }
 
     setState(() {
-      _isLoading = true;
-      _erreur = null;
-      _categorie = null;
-      _urgence = null;
-      _description = null;
+      _recherchePositionEnCours = false;
+
+      if (position != null) {
+        _position = position;
+        _saisieManuelle = false;
+      } else {
+        _position = null;
+        _saisieManuelle = true;
+      }
+    });
+
+    if (position == null) {
+      _afficherErreur(
+        'Position indisponible. Indique ta commune et un repère.',
+      );
+    }
+  }
+
+  /// Valide et envoie le signalement dans Firestore.
+  Future<void> _envoyerSignalement() async {
+    // Vérification de la photo.
+    if (_photoBase64 == null) {
+      _afficherErreur('Ajoutez une photo du problème.');
+      return;
+    }
+
+    // Vérification de la catégorie.
+    if (_categorieChoisie == null) {
+      _afficherErreur('Choisissez une catégorie.');
+      return;
+    }
+
+    // Vérification de l'urgence.
+    if (_urgenceChoisie == null) {
+      _afficherErreur("Choisissez un niveau d'urgence.");
+      return;
+    }
+
+    // Vérification de la description.
+    final description = _descriptionController.text.trim();
+
+    if (description.isEmpty) {
+      _afficherErreur('Décrivez brièvement le problème.');
+      return;
+    }
+
+    // Vérification de l'utilisateur connecté.
+    final utilisateur = context.read<AuthProvider>().user;
+
+    if (utilisateur == null) {
+      _afficherErreur(
+        'Vous devez être connecté pour signaler un problème.',
+      );
+      return;
+    }
+
+    setState(() {
+      _envoiEnCours = true;
     });
 
     try {
-      final bytes = await _photo!.readAsBytes();
-      final photoBase64 = base64Encode(bytes);
+      final signalement = Signalement(
+        userId: utilisateur.uid,
+        userNom: context.read<AuthProvider>().displayName,
+        description: description,
+        photoBase64: _photoBase64!,
+        categorie: _categorieChoisie!,
+        urgence: _urgenceChoisie!,
+        latitude: _position?.latitude,
+        longitude: _position?.longitude,
+        commune: _saisieManuelle ? _communeChoisie : null,
+        repere: _saisieManuelle && _repereController.text.trim().isNotEmpty
+            ? _repereController.text.trim()
+            : null,
+      );
 
-      final resultat = await _iaService.analyserPhoto(photoBase64);
+      await _signalementService.creerSignalement(signalement);
 
       if (!mounted) {
         return;
       }
 
-      if (resultat == null) {
-        setState(() {
-          _isLoading = false;
-          _erreur =
-              'L’analyse n’a pas pu être effectuée. '
-              'Vérifiez votre connexion puis réessayez.';
-        });
-        return;
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Signalement envoyé, merci !'),
+        ),
+      );
 
-      setState(() {
-        _isLoading = false;
-        _categorie = resultat['categorie'];
-        _urgence = resultat['urgence'];
-        _description = resultat['description'];
-      });
+      Navigator.pop(context);
     } catch (e) {
-      if (!mounted) {
-        return;
+      _afficherErreur(
+        'Impossible d\'envoyer le signalement. '
+        'Vérifiez votre connexion et réessayez.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _envoiEnCours = false;
+        });
       }
-
-      setState(() {
-        _isLoading = false;
-        _erreur = 'Une erreur est survenue pendant l’analyse de la photo.';
-      });
     }
   }
 
-  IconData _iconeCategorie(String? categorie) {
-    switch (categorie) {
-      case 'ordures':
-        return Icons.delete_outline_rounded;
-      case 'caniveau':
-        return Icons.water_damage_outlined;
-      case 'eau_stagnante':
-        return Icons.water_drop_outlined;
-      default:
-        return Icons.location_city_outlined;
-    }
-  }
-
-  String _libelleCategorie(String? categorie) {
-    switch (categorie) {
-      case 'ordures':
-        return 'Ordures';
-      case 'caniveau':
-        return 'Caniveau';
-      case 'eau_stagnante':
-        return 'Eau stagnante';
-      case 'autre':
-        return 'Autre';
-      default:
-        return 'Non déterminée';
-    }
-  }
-
-  IconData _iconeUrgence(String? urgence) {
-    switch (urgence) {
-      case 'faible':
-        return Icons.check_circle_outline_rounded;
-      case 'moyenne':
-        return Icons.warning_amber_rounded;
-      case 'elevee':
-        return Icons.priority_high_rounded;
-      default:
-        return Icons.help_outline_rounded;
-    }
-  }
-
-  String _libelleUrgence(String? urgence) {
-    switch (urgence) {
-      case 'faible':
-        return 'Faible';
-      case 'moyenne':
-        return 'Moyenne';
-      case 'elevee':
-        return 'Élevée';
-      default:
-        return 'Non déterminée';
-    }
-  }
-
-  Color _couleurUrgence(String? urgence) {
-    switch (urgence) {
-      case 'faible':
-        return const Color(0xFF16A34A);
-      case 'moyenne':
-        return const Color(0xFFD97706);
-      case 'elevee':
-        return const Color(0xFFDC2626);
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color _fondUrgence(String? urgence) {
-    switch (urgence) {
-      case 'faible':
-        return const Color(0xFFE8F5E9);
-      case 'moyenne':
-        return const Color(0xFFFEF3C7);
-      case 'elevee':
-        return const Color(0xFFFEE2E2);
-      default:
-        return const Color(0xFFF3F4F6);
-    }
+  /// Affiche un message d'erreur.
+  void _afficherErreur(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final analyseTerminee =
-        !_isLoading &&
-        _erreur == null &&
-        _categorie != null &&
-        _description != null;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nouveau signalement'),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_photo == null) ...[
-                const Text(
-                  'Signaler un problème',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Prenez une photo du problème pour permettre à '
-                  'l’intelligence artificielle de l’identifier.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _choisirPhoto,
-                    icon: const Icon(Icons.add_a_photo_outlined),
-                    label: const Text('Choisir une photo'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF16A34A),
-                      side: const BorderSide(
-                        color: Color(0xFF16A34A),
+      body: AbsorbPointer(
+        absorbing: _envoiEnCours,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _blocPhoto(context),
+            const SizedBox(height: 24),
+
+            // Catégorie.
+            DropdownButtonFormField<String>(
+              initialValue: _categorieChoisie,
+              decoration: const InputDecoration(
+                labelText: 'Catégorie',
+              ),
+              items: kCategories.entries
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _envoiEnCours
+                  ? null
+                  : (valeur) {
+                      setState(() {
+                        _categorieChoisie = valeur;
+                      });
+                    },
+            ),
+
+            const SizedBox(height: 16),
+
+            // Urgence.
+            DropdownButtonFormField<String>(
+              initialValue: _urgenceChoisie,
+              decoration: const InputDecoration(
+                labelText: 'Urgence',
+              ),
+              items: kUrgences.entries
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _envoiEnCours
+                  ? null
+                  : (valeur) {
+                      setState(() {
+                        _urgenceChoisie = valeur;
+                      });
+                    },
+            ),
+
+            const SizedBox(height: 16),
+
+            // Description.
+            TextField(
+              controller: _descriptionController,
+              maxLines: 3,
+              maxLength: 300,
+              enabled: !_envoiEnCours,
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                hintText: "Ex. : tas d'ordures depuis plusieurs jours...",
+                alignLabelWithHint: true,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Localisation.
+            _blocLocalisation(context),
+
+            const SizedBox(height: 8),
+
+            // Bouton d'envoi.
+            FilledButton.icon(
+              onPressed: _envoiEnCours ? null : _envoyerSignalement,
+              icon: _envoiEnCours
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                    )
+                  : const Icon(Icons.send),
+              label: Text(
+                _envoiEnCours ? 'Envoi en cours...' : 'Envoyer le signalement',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Bloc permettant d'ajouter une photo.
+  Widget _blocPhoto(BuildContext context) {
+    final couleurFond = Theme.of(context).colorScheme.surfaceContainerHighest;
+
+    return Column(
+      children: [
+        if (_photoBase64 != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.memory(
+              base64Decode(_photoBase64!),
+              height: 220,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder:
+                  (
+                    context,
+                    error,
+                    stackTrace,
+                  ) => Container(
+                    height: 220,
+                    alignment: Alignment.center,
+                    color: couleurFond,
+                    child: const Text(
+                      'Impossible d\'afficher la photo',
                     ),
                   ),
+            ),
+          )
+        else
+          Container(
+            height: 220,
+            width: double.infinity,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: couleurFond,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.add_a_photo_outlined,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Ajoutez une photo du problème',
                 ),
               ],
+            ),
+          ),
 
-              if (_photo != null) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(22),
-                  child: Image.file(
-                    _photo!,
-                    width: double.infinity,
-                    height: 240,
-                    fit: BoxFit.cover,
-                  ),
+        const SizedBox(height: 12),
+
+        Row(
+          children: [
+            // Caméra.
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _envoiEnCours
+                    ? null
+                    : () => _choisirPhoto(
+                        ImageSource.camera,
+                      ),
+                icon: const Icon(
+                  Icons.camera_alt_outlined,
                 ),
+                label: const Text('Caméra'),
+              ),
+            ),
 
-                const SizedBox(height: 24),
+            const SizedBox(width: 12),
 
-                if (_isLoading) const IaLoadingCard(),
-
-                if (_erreur != null)
-                  IaErrorCard(
-                    message: _erreur!,
-                    onRetry: _analyser,
-                  ),
-
-                if (analyseTerminee) ...[
-                  const IaHeaderCard(),
-
-                  const SizedBox(height: 16),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: IaInfoCard(
-                          icon: _iconeCategorie(_categorie),
-                          title: 'Catégorie',
-                          value: _libelleCategorie(_categorie),
-                          iconColor: const Color(0xFF16A34A),
-                          backgroundColor: const Color(0xFFE8F5E9),
-                        ),
+            // Galerie.
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _envoiEnCours
+                    ? null
+                    : () => _choisirPhoto(
+                        ImageSource.gallery,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: IaInfoCard(
-                          icon: _iconeUrgence(_urgence),
-                          title: 'Urgence',
-                          value: _libelleUrgence(_urgence),
-                          iconColor: _couleurUrgence(_urgence),
-                          backgroundColor: _fondUrgence(_urgence),
-                        ),
-                      ),
-                    ],
-                  ),
+                icon: const Icon(
+                  Icons.photo_library_outlined,
+                ),
+                label: const Text('Galerie'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
-                  const SizedBox(height: 16),
-
-                  IaDescriptionCard(
-                    description: _description!,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  const IaInfoMessage(),
-
-                  const SizedBox(height: 16),
-
-                  IaRetryButton(
-                    onPressed: _choisirPhoto,
-                  ),
-                ],
-              ],
+  /// Bloc de gestion de la localisation.
+  Widget _blocLocalisation(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Localisation (facultative)',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
-        ),
+
+          const SizedBox(height: 12),
+
+          if (_position != null && !_saisieManuelle) ...[
+            Row(
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Position GPS récupérée',
+                  ),
+                ),
+                TextButton(
+                  onPressed: _envoiEnCours
+                      ? null
+                      : () {
+                          setState(() {
+                            _saisieManuelle = true;
+                          });
+                        },
+                  child: const Text(
+                    'Saisir manuellement',
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // GPS.
+            OutlinedButton.icon(
+              onPressed: (_envoiEnCours || _recherchePositionEnCours)
+                  ? null
+                  : _recupererPosition,
+              icon: _recherchePositionEnCours
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.my_location,
+                    ),
+              label: Text(
+                _recherchePositionEnCours
+                    ? 'Recherche en cours...'
+                    : 'Utiliser ma position GPS',
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Commune.
+            DropdownButtonFormField<String>(
+              initialValue: _communeChoisie,
+              decoration: const InputDecoration(
+                labelText: 'Commune',
+              ),
+              items: kCommunes
+                  .map(
+                    (c) => DropdownMenuItem(
+                      value: c,
+                      child: Text(c),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _envoiEnCours
+                  ? null
+                  : (valeur) {
+                      setState(() {
+                        _communeChoisie = valeur;
+                        _saisieManuelle = true;
+                      });
+                    },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Repère.
+            TextField(
+              controller: _repereController,
+              enabled: !_envoiEnCours,
+              // Les règles Firestore refusent un repère de plus de 200 caractères.
+              maxLength: 100,
+              decoration: const InputDecoration(
+                labelText: 'Repère (optionnel)',
+                hintText: 'Ex. : près du marché, en face de la pharmacie...',
+              ),
+              onChanged: (_) {
+                setState(() {
+                  _saisieManuelle = true;
+                });
+              },
+            ),
+          ],
+        ],
       ),
     );
   }

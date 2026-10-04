@@ -20,12 +20,13 @@ Le projet sera présenté en direct : **la priorité absolue est une application
 
 ## 3. Stack technique
 
-- **Flutter** (dernière version stable) et **Dart**, application mobile Android en priorité (iOS si possible, sans bloquer le reste)
+- **Flutter** (dernière version stable) et **Dart**, application mobile Android en priorité (iOS si possible, sans bloquer le reste). Aucun membre de l'équipe n'a de Mac : la version iPhone ne peut pas être compilée, la démo se fait sur Android. Pas de version Web (choix assumé : usage mobile sur le terrain, et la clé Rodium serait lisible dans le code de la page)
 - **Firebase Authentication** : inscription et connexion par email / mot de passe
 - **Cloud Firestore** : base de données
 - **Pas de Firebase Storage** : il exige le forfait Blaze (carte bancaire), que nous n'avons pas. Les photos sont compressées et stockées en base64 directement dans Firestore (voir section 5).
 - **Rodium AI** (sponsor du hackathon) : analyse des photos. Rodium AI est une passerelle d'API compatible OpenAI (`https://api.rodiumai.io/v1`) qui donne accès aux modèles d'OpenAI, Anthropic, Google, etc. avec une seule clé. Documentation : https://www.rodiumai.io/docs
 - **Packages complémentaires :** `http` (appels à Rodium AI), `image_picker` (photo), `geolocator` (GPS), `url_launcher` (ouvrir Google Maps), `provider` (gestion d'état), `intl` (formatage des dates)
+- **Police :** Poppins, embarquée dans `assets/fonts/` (licence OFL)
 
 Avant d'utiliser un package, vérifie sur pub.dev la version actuelle et sa documentation. Pour Rodium AI, consulte la documentation officielle (endpoint `POST /v1/chat/completions`, liste des modèles via `GET /v1/models`) plutôt que de supposer le format.
 
@@ -104,11 +105,14 @@ Limite connue, à assumer devant le jury : cette solution convient à un prototy
 L'analyse passe par **Rodium AI**, sponsor du hackathon. Service dédié `lib/services/ia_service.dart` qui :
 1. reçoit la photo déjà compressée et encodée en base64 (la même que celle enregistrée dans Firestore) ;
 2. appelle `POST https://api.rodiumai.io/v1/chat/completions` avec le package `http`, l'en-tête `Authorization: Bearer <clé>` et un message utilisateur au format OpenAI multimodal (une partie `text` avec la consigne, une partie `image_url` avec `data:image/jpeg;base64,...`) ;
-3. utilise un modèle **qui accepte les images** (vision), choisi dans la liste `GET /v1/models` ou la page Models de Rodium (par exemple un modèle GPT-4o ou Gemini). Le nom du modèle est une constante dans `utils/constants.dart` pour pouvoir en changer facilement ;
+3. utilise un modèle **qui accepte les images** (vision). Le nom du modèle est une constante `kRodiumModele` dans `utils/constants.dart` pour pouvoir en changer facilement. **Modèle retenu : `google/gemini-2.5-flash-lite`** (environ 2 s par analyse, testé avec une photo en base64) ; solution de secours : `google/gemini-2.5-flash`. Points vérifiés le 1er octobre :
+   - les identifiants Rodium ont un **préfixe fournisseur** (`google/...`, `anthropic/...`) ; sans préfixe, l'appel échoue ;
+   - le crédit offert par le hackathon (« Crédit provided ») ne donne accès **qu'aux modèles Anthropic et Google, pas OpenAI** ; la clé doit être créée avec la source de facturation « Crédit provided », sinon l'API répond `402 insufficient_balance` ;
+   - mettre `max_tokens: 1024` : `gemini-2.5-flash` consomme des tokens de raisonnement, et une valeur trop basse coupe le JSON ;
 4. demande une réponse **uniquement en JSON** au format :
    `{"categorie": "...", "urgence": "...", "description": "..."}`
    avec des valeurs limitées à celles de la section 4 et une description courte en français (une à deux phrases) ;
-5. lit le texte dans `choices[0].message.content`, le nettoie et le parse de façon robuste (retirer d'éventuels ```json, vérifier que les valeurs sont autorisées) ;
+5. lit le texte dans `choices[0].message.content`, le nettoie et le parse de façon robuste (retirer les ```json que Gemini ajoute systématiquement, vérifier que les valeurs sont autorisées) ;
 6. applique un délai maximum de 20 secondes ;
 7. **en cas d'erreur, de délai dépassé, de crédits RODI épuisés ou de réponse invalide, ne bloque jamais l'utilisateur** : renvoie `null`, et l'écran laisse l'utilisateur remplir les champs lui-même.
 
@@ -130,18 +134,25 @@ lib/
   main.dart
   firebase_options.dart
   models/        signalement.dart, app_user.dart  (fromFirestore / toMap)
-  services/      auth_service.dart, signalement_service.dart,
-                 image_service.dart, location_service.dart, ia_service.dart
-  providers/     auth_provider.dart
-  screens/       auth/, home/, signalement/, profil/
-  widgets/       composants réutilisables (carte de signalement, badges…)
-  utils/         constantes (catégories, statuts, communes, couleurs), thème
+  services/      auth_service.dart, auth_exception.dart, user_service.dart,
+                 signalement_service.dart, image_service.dart,
+                 location_service.dart, ia_service.dart
+  providers/     auth_provider.dart  (utilisateur, profil, displayName, isAdmin)
+  screens/       splash_screen.dart, auth/, home/, signalement/, profile/
+  widgets/       composants réutilisables (SignalementCard, StatusBadge,
+                 PrimaryButton, PasswordField, AppLogo…)
+  utils/         constants.dart, theme.dart, validators.dart
 ```
+
+Points d'entrée utiles :
+- `HomeScreen` (`screens/home/home_screen.dart`) porte la barre de navigation (Accueil, Mes signalements, Profil) et le bouton « Signaler » : `SplashScreen` doit toujours afficher `HomeScreen`, jamais un onglet directement.
+- Nom de l'utilisateur connecté : `context.read<AuthProvider>().displayName` (nom du profil Firestore, avec repli). Rôle : `context.read<AuthProvider>().isAdmin`.
+- Libellés et couleurs : `libelleCategorie`, `libelleStatut`, `couleurStatut`, `libelleUrgence`, `couleurUrgence` dans `constants.dart`, plutôt que des valeurs écrites en dur.
 
 Principes :
 - Les écrans n'appellent jamais Firebase directement : ils passent par les services.
-- Un fichier par classe, noms de fichiers en `snake_case`.
-- Thème centralisé dans `utils/theme.dart` (Material 3, couleur principale verte, par exemple `#2E7D32`), cohérent sur tous les écrans.
+- Un fichier par classe, noms de fichiers en `snake_case`. Le code d'authentification et de profil utilise des identifiants en anglais, le reste en français : rester cohérent avec le fichier modifié.
+- Thème centralisé dans `utils/theme.dart` (Material 3, palette de verts « sauge », couleur principale `AppTheme.evergreen` `#344C3D`, police Poppins), cohérent sur tous les écrans.
 - Code commenté en français sur les parties non évidentes.
 - Toute l'interface est en français.
 - Gestion systématique des erreurs (try/catch) avec un message compréhensible pour l'utilisateur (SnackBar), jamais de crash.
@@ -154,6 +165,10 @@ Fournir `firestore.rules` à la racine du projet :
 - seul un admin (champ `role` dans `users/{uid}`) peut modifier le statut ;
 - un utilisateur ne peut modifier que son propre document `users/{uid}` et ne peut pas changer son `role` ;
 - le champ `photoBase64` est obligatoire à la création et doit faire moins de 900 000 caractères.
+
+État : `firestore.rules` est écrit, testé dans l'émulateur Firestore (29 cas : usages de l'app et tentatives interdites) et **déployé** le 2 octobre. Les règles sont strictes : un signalement ne peut contenir que les champs de la section 5, `commune` est limitée à 50 caractères, `repere` à 200, `description` à 1 000, et l'admin ne peut modifier que `statut` et `updatedAt`. Tout nouveau champ dans le modèle exige donc une mise à jour des règles.
+- Déployer : `firebase deploy --only firestore:rules --project cleancity-22888`
+- Revenir en arrière : console Firebase → Firestore Database → Règles → Historique.
 
 ## 9. Permissions natives
 
@@ -174,7 +189,10 @@ Règles :
 - Ne jamais committer directement sur `main`.
 - Rester dans le périmètre de la branche en cours ; si une modification touche une autre partie (modèles, constantes, services partagés), le signaler clairement.
 - Commits petits et fréquents, messages en français au format `type: description` (`feat:`, `fix:`, `style:`, `docs:`, `refactor:`).
-- Ne jamais committer de clés d'API privées, mots de passe ou fichiers de build.
+- Ne jamais committer de clés d'API privées, mots de passe ou fichiers de build, ni les dossiers `linux/`, `macos/`, `windows/` générés automatiquement (le projet ne cible qu'Android et iOS).
+- `main` est protégée sur GitHub : push direct interdit, tout passe par une Pull Request, et **seule la Lead fusionne**.
+- La CI GitHub Actions (`.github/workflows/ci.yml`) est **désactivée** à cause d'un problème de facturation du compte. Avant chaque push, lancer et vérifier au vert : `dart format lib test`, `flutter analyze`, `flutter test`.
+- Chaque jour, avant de coder : `git pull` sur `main`, puis `git merge origin/main` dans sa branche.
 
 ## 11. Plan de développement
 
@@ -183,6 +201,12 @@ Règles :
 3. **Phase 3 — Fonctionnalités clés (30 sept au 1er oct)** : GPS avec saisie manuelle en secours, analyse IA, gestion des statuts par l'admin, « Mes signalements », profil, filtres.
 4. **Phase 4 — Qualité (2 au 4 oct)** : règles de sécurité, gestion des erreurs, états vides et de chargement, finitions du design, tests sur un vrai téléphone ; bonus carte si le temps le permet.
 5. **Phase 5 — Rendu (5 au 6 oct)** : README complet (description, ODD, captures d'écran, fonctionnalités, installation, membres), génération de l'APK de release.
+
+### État au 2 octobre
+- Sur `main` : base, authentification et profil, fil avec filtres, détail, « Mes signalements », statuts admin, création de signalement avec photo et GPS (saisie manuelle en secours), composants `SignalementCard` / `StatusBadge`, règles de sécurité déployées.
+- En cours : service IA (PR #7), puis branchement de l'IA dans l'écran « Nouveau signalement ».
+- Reste : test complet sur téléphone Android, captures d'écran, README, APK de release, comptes de démo.
+- À partir du 4 octobre : plus aucune nouvelle fonctionnalité, uniquement des corrections.
 
 ## 12. Méthode de travail attendue
 
