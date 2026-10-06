@@ -46,15 +46,14 @@ Projet réalisé pour le **Flufithon '26**, hackathon final du **FlutterFire Sum
 
 ## Captures d'écran
 
-<!-- Ajouter les captures dans docs/screenshots/ (format portrait, environ 400 px de large) -->
 
 | Connexion | Accueil | Nouveau signalement |
 |---|---|---|
-| ![Connexion](docs/screenshots/connexion.png) | ![Accueil](docs/screenshots/accueil.png) | ![Nouveau signalement](docs/screenshots/nouveau_signalement.png) |
+| ![Connexion](docs/screenshots/connexion.jpg) | ![Accueil](docs/screenshots/accueil.jpg) | ![Nouveau signalement](docs/screenshots/nouveau_signalement.jpg) |
 
 | Analyse IA | Détail | Profil |
 |---|---|---|
-| ![Analyse IA](docs/screenshots/analyse_ia.png) | ![Détail](docs/screenshots/detail.png) | ![Profil](docs/screenshots/profil.png) |
+| ![Analyse IA](docs/screenshots/analyse_ia.jpg) | ![Détail](docs/screenshots/detail.jpg) | ![Profil](docs/screenshots/profil.jpg) |
 
 ---
 
