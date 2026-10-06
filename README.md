@@ -96,7 +96,12 @@ Les écrans ne parlent jamais directement à Firebase : ils passent par les serv
 
 ### Tester l'application
 
-Téléchargez l'APK depuis la page [Releases](https://github.com/OYKLd/cleancity-flutter/releases) et installez-le sur un téléphone Android (autorisez l'installation depuis des sources inconnues).
+📱 **[Télécharger l'APK (Google Drive)](https://drive.google.com/drive/folders/1GzzdWWb-Wp1IysqWmOO66qHFRiAWsZwE?usp=drive_link)** — fichier `CleanCity-v1.0.0.apk`, Android 7.0 ou plus récent.
+
+1. Téléchargez le fichier sur un téléphone Android et ouvrez-le.
+2. Autorisez l'installation depuis cette source si Android le demande.
+3. Si Play Protect affiche un avertissement, choisissez « Installer quand même » (l'application ne vient pas du Play Store).
+4. Créez un compte depuis l'application pour commencer à signaler.
 
 ### Lancer le projet
 
