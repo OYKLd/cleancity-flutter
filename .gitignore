@@ -49,3 +49,6 @@ dart_defines.json
 
 # Journaux de crash de la JVM (Gradle)
 hs_err_pid*.log
+
+# Fichier de contexte de l'assistant de code (gardé en local uniquement)
+CLAUDE.md
