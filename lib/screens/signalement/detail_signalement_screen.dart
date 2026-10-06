@@ -1,23 +1,34 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../../models/signalement.dart';
 import '../../services/signalement_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
+import '../../widgets/status_badge.dart';
 
 class DetailSignalementScreen extends StatelessWidget {
   final Signalement signalement;
 
   const DetailSignalementScreen({super.key, required this.signalement});
 
-  Future<void> _ouvrirGoogleMaps(double lat, double lng) async {
+  Future<void> _ouvrirGoogleMaps(
+    BuildContext context,
+    double lat,
+    double lng,
+  ) async {
     final Uri url = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
     );
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      throw Exception('Impossible d\'ouvrir Google Maps');
+    // Si aucune application ne peut ouvrir le lien, on prévient
+    // l'utilisateur au lieu de laisser une erreur silencieuse.
+    final ouvert = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!ouvert && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible d\'ouvrir Google Maps.')),
+      );
     }
   }
 
@@ -28,13 +39,20 @@ class DetailSignalementScreen extends StatelessWidget {
 
     final DateTime? date = signalement.createdAt;
     final String dateFormatted = date != null
-        ? '${date.day}/${date.month}/${date.year}'
+        ? DateFormat('dd/MM/yyyy à HH:mm').format(date.toLocal())
         : 'Non renseignée';
 
+    // Localisation : la commune si elle a été saisie à la main,
+    // sinon on indique que la position GPS a été enregistrée.
     final String? commune = signalement.commune;
-    final String communeText = (commune != null && commune.trim().isNotEmpty)
-        ? commune
-        : 'Emplacement GPS';
+    final bool aPositionGps =
+        signalement.latitude != null && signalement.longitude != null;
+    final String localisationText =
+        (commune != null && commune.trim().isNotEmpty)
+        ? 'Commune : $commune'
+        : aPositionGps
+        ? 'Position GPS enregistrée'
+        : 'Localisation non renseignée';
 
     final String? repere = signalement.repere;
 
@@ -73,13 +91,7 @@ class DetailSignalementScreen extends StatelessWidget {
                 Chip(
                   label: Text(libelleCategorie(signalement.categorie)),
                 ),
-                Chip(
-                  label: Text(
-                    libelleStatut(signalement.statut),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  backgroundColor: couleurStatut(signalement.statut),
-                ),
+                StatusBadge(statut: signalement.statut),
               ],
             ),
             const SizedBox(height: 12),
@@ -87,7 +99,7 @@ class DetailSignalementScreen extends StatelessWidget {
             // Urgence
             Chip(
               label: Text(
-                'Urgence : ${libelleUrgence(signalement.urgence)}',
+                libelleUrgence(signalement.urgence),
                 style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: couleurUrgence(signalement.urgence),
@@ -107,7 +119,7 @@ class DetailSignalementScreen extends StatelessWidget {
 
             // Localisation
             Text(
-              'Commune : $communeText',
+              localisationText,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             if (repere != null && repere.isNotEmpty) Text('Repère : $repere'),
@@ -130,6 +142,7 @@ class DetailSignalementScreen extends StatelessWidget {
                   icon: const Icon(Icons.map),
                   label: const Text('Voir sur Google Maps'),
                   onPressed: () => _ouvrirGoogleMaps(
+                    context,
                     signalement.latitude!,
                     signalement.longitude!,
                   ),

@@ -55,10 +55,6 @@ flutter:
   # included in your application.
   uses-material-design: true
 
-  # Image used for the Rodium AI test.
-  assets:
-    - test/garbage_test_reduced.jpeg
-
   fonts:
     - family: Poppins
       fonts:
